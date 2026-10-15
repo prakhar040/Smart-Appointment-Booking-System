@@ -92,4 +92,18 @@ export const api = {
     }>(`/api/appointments/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
 
   list: () => request<{ appointments: AppointmentDto[] }>("/api/appointments"),
+
+  patientSession: () => request<{ email: string | null }>("/api/patient-auth/session"),
+  patientLogin: (email: string, password: string) =>
+    request<{ patient: { email: string } }>("/api/patient-auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  patientSignup: (email: string, password: string) =>
+    request<{ patient: { email: string } }>("/api/patient-auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  patientLogout: () =>
+    request<{ signedOut: boolean }>("/api/patient-auth/session", { method: "DELETE" }),
 };

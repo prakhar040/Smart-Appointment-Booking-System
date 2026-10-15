@@ -15,9 +15,10 @@ Docker is not part of this project. Neon is the documented hosted database optio
 1. Install dependencies with `npm install`. The postinstall hook generates the Prisma client. It supplies local placeholder URLs only for generation when database variables are absent; it does not connect to a database.
 2. Copy `.env.example` to `.env` and set `DATABASE_URL` to the pooled connection string and `DIRECT_URL` to the direct connection string from your PostgreSQL provider. Set both to a local database URL when using local PostgreSQL.
 3. Review the scheduling settings in `.env`. Defaults are `Asia/Kolkata`, 10:00–18:00, 30-minute slots, Monday through Saturday.
-4. Apply schema migrations with `npm run db:deploy`.
-5. Seed the sample providers with `npm run db:seed`.
-6. Start the development server with `npm run dev`, then open <http://localhost:3000>.
+4. Set `PATIENT_AUTH_SECRET` to a random secret of at least 32 characters.
+5. Apply schema migrations with `npm run db:deploy`.
+6. Seed the sample providers with `npm run db:seed`.
+7. Start the development server with `npm run dev`, then open <http://localhost:3000>.
 
 For a new local schema during development, `npm run db:migrate` creates and applies a migration. Use `npm run db:deploy` for a clean deployment from checked-in migrations.
 
@@ -32,6 +33,7 @@ For a new local schema during development, `npm run db:migrate` creates and appl
 | `WORK_END_HOUR` | Closing hour, defaults to `18` |
 | `SLOT_MINUTES` | Appointment length, defaults to `30` |
 | `WORKING_DAYS` | Luxon weekday numbers, Monday `1` through Sunday `7`; defaults to `1,2,3,4,5,6` |
+| `PATIENT_AUTH_SECRET` | Random secret used to sign patient session cookies; use at least 32 characters |
 
 Keep `.env` and `.env.test` private. `.env.example` and `.env.test.example` contain placeholders only.
 
@@ -44,10 +46,13 @@ The active Next.js App Router is the root `app/` directory. Reusable booking log
 | `GET` | `/api/providers` | List providers |
 | `GET` | `/api/providers/:id/slots?date=YYYY-MM-DD` | List provider availability for a date |
 | `POST` | `/api/appointments` | Create a booking |
+| `POST` | `/api/patient-auth/signup` | Create a patient account and sign in |
+| `POST` | `/api/patient-auth/login` | Sign in to a patient account |
+| `GET` / `DELETE` | `/api/patient-auth/session` | Read session / sign out |
 | `GET` | `/api/appointments/:id` | Look up an appointment |
 | `POST` | `/api/appointments/:id/cancel` | Cancel an appointment |
 
-Booking requests require `providerId`, `customerName`, `customerEmail`, and an ISO 8601 `startTime` with a timezone offset. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`) for customer lookup; the UUID `id` remains the internal identifier. The lookup and cancellation endpoints accept either value. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
+Patient accounts use email and password; passwords are stored as scrypt hashes. Session cookies are HTTP-only, SameSite=Lax, and signed with `PATIENT_AUTH_SECRET`. There is no email verification or password reset flow. Booking, listing, details, and cancellation require sign-in. New bookings use the email on the signed-in account, and existing appointment access is scoped by that email. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`); the UUID `id` remains internal. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
 
 ## Tests and checks
 
@@ -64,7 +69,7 @@ Do not point `.env.test` at a production or shared development database. `src/li
 
 ## Known limitations
 
-- There is no authentication or authorization. Booking lookup and cancellation rely on an appointment ID, so this is a demonstration project and should not be exposed as a production service without access controls.
+- Patient accounts do not verify email ownership and do not yet provide password reset, login rate limiting, or multi-factor authentication. A person who registers an email matching a pre-existing booking can access visits associated with that address; review existing bookings before production use.
 - There is no email/SMS confirmation, rate limiting, provider administration, pagination, or configurable booking horizon.
 - Availability and booking depend on a reachable PostgreSQL database. A sleeping or unavailable hosted database can make requests slow or return a server error until the database wakes or connectivity is restored.
 - Production concurrency, cold-start, reload, and manual abuse checks require a configured reachable database and deployment environment; they are not implied by the automated unit tests.

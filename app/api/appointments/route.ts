@@ -1,18 +1,21 @@
 import { toAppointmentDto } from "../../../src/lib/dto";
 import { handle, json, readJson } from "../../../src/lib/http";
-import { bookAppointment, listAppointments } from "../../../src/services/appointments";
+import { bookAppointment, listPatientAppointments } from "../../../src/services/appointments";
+import { requirePatient } from "../../../src/lib/patient-auth";
 
-export function GET() {
+export function GET(request: Request) {
   return handle(async () => {
-    const appointments = await listAppointments();
+    const email = requirePatient(request);
+    const appointments = await listPatientAppointments(email);
     return json({ appointments: appointments.map(toAppointmentDto) });
   });
 }
 
 export function POST(request: Request) {
   return handle(async () => {
+    const email = requirePatient(request);
     const body = await readJson(request);
-    const appointment = await bookAppointment(body);
+    const appointment = await bookAppointment(body, email);
     return json({ appointment: toAppointmentDto(appointment) }, 201);
   });
 }

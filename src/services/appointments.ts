@@ -72,8 +72,12 @@ export async function getAvailability(providerId: string, date: string, now = ne
   return { providerId, date, closed: false, slots: result };
 }
 
-export async function bookAppointment(raw: unknown, now = new Date()) {
-  const input = parseInput(bookingSchema, raw);
+export async function bookAppointment(raw: unknown, patientEmail: string, now = new Date()) {
+  const accountBoundInput = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? { ...raw, customerEmail: patientEmail }
+    : raw;
+  const parsed = parseInput(bookingSchema, accountBoundInput);
+  const input = { ...parsed, customerEmail: patientEmail };
   const slot = validateSlot(new Date(input.startTime), now);
   await requireProvider(input.providerId);
 
@@ -108,29 +112,37 @@ export async function bookAppointment(raw: unknown, now = new Date()) {
   throw new AppError("INTERNAL_ERROR", "Could not create a visit reference. Please try again.", 503);
 }
 
-export async function getAppointment(idOrReference: string) {
-  const appointment = isUuid(idOrReference)
-    ? await prisma.appointment.findUnique({ where: { id: idOrReference }, include: { provider: true } })
-    : await prisma.appointment.findUnique({ where: { reference: normalizeReference(idOrReference) }, include: { provider: true } });
-  if (!appointment) throw new AppError("NOT_FOUND", "Appointment not found", 404);
+function appointmentSelector(idOrReference: string) {
+  return isUuid(idOrReference)
+    ? { id: idOrReference }
+    : { reference: normalizeReference(idOrReference) };
+}
+
+export async function getPatientAppointment(idOrReference: string, email: string) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { ...appointmentSelector(idOrReference), customerEmail: email },
+    include: { provider: true },
+  });
+  if (!appointment) throw new AppError("NOT_FOUND", "Visit not found", 404);
   return appointment;
 }
 
-export async function cancelAppointment(idOrReference: string) {
-  const appointment = await getAppointment(idOrReference);
+export async function cancelAppointment(idOrReference: string, email: string) {
+  const appointment = await getPatientAppointment(idOrReference, email);
 
   // Atomic, conditional update. Only a BOOKED row can transition.
   const { count } = await prisma.appointment.updateMany({
-    where: { id: appointment.id, status: "BOOKED" },
+    where: { id: appointment.id, customerEmail: email, status: "BOOKED" },
     data: { status: "CANCELLED" },
   });
 
-  const updatedAppointment = await getAppointment(appointment.id);
+  const updatedAppointment = await getPatientAppointment(appointment.id, email);
   return { appointment: updatedAppointment, alreadyCancelled: count === 0 };
 }
 
-export function listAppointments() {
+export function listPatientAppointments(email: string) {
   return prisma.appointment.findMany({
+    where: { customerEmail: email },
     include: { provider: true },
     orderBy: { startTime: "desc" },
   });

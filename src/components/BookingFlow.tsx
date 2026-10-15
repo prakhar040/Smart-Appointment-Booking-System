@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { io } from "next/cache";
 import type { AppointmentDto } from "@/lib/dto";
 import { api, ApiClientError, errorMessage, type ProviderDto, type SlotsResponse } from "@/lib/api-client";
@@ -33,11 +34,19 @@ export default function BookingFlow() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<AppointmentDto | null>(null);
   const [copied, setCopied] = useState(false);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    api.patientSession()
+      .then(({ email: accountEmail }) => setEmail(accountEmail ?? ""))
+      .catch(() => setEmail(""))
+      .finally(() => setSessionChecked(true));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -147,6 +156,24 @@ export default function BookingFlow() {
     setEmail("");
     setFormError(null);
     refreshSlots();
+  }
+
+  if (!sessionChecked) {
+    return <div className="booking-card h-40 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Checking your account" />;
+  }
+
+  if (!email) {
+    return (
+      <section className="booking-card rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-12">
+        <p className="eyebrow eyebrow-dark">A SECURE SPACE FOR YOUR CARE</p>
+        <h2 className="mt-3 text-2xl font-semibold text-gray-950">Sign in to book a visit</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-600">Your patient account keeps your visit history private and lets you manage your appointments.</p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link href="/booking" className="rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-900">Sign in</Link>
+          <Link href="/sign-up" className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">Create account</Link>
+        </div>
+      </section>
+    );
   }
 
   if (confirmed) {
@@ -384,9 +411,11 @@ export default function BookingFlow() {
                 maxLength={254}
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                readOnly
+                aria-describedby="customer-email-note"
                 className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
+              <p id="customer-email-note" className="mt-1.5 text-xs text-gray-500">This is the email on your signed-in account.</p>
             </div>
             {formError && <Alert>{formError}</Alert>}
             <button

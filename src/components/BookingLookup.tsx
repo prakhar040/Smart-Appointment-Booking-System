@@ -2,42 +2,61 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
+import { api, errorMessage } from "@/lib/api-client";
+import { Alert } from "./ui";
 
 export default function BookingLookup() {
   const router = useRouter();
-  const [id, setId] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = id.trim();
-    if (value) router.push(`/booking/${encodeURIComponent(value)}`);
+    setError(null);
+    setLoading(true);
+    try {
+      await api.patientLogin(email, password);
+      router.push("/appointments");
+      router.refresh();
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label htmlFor="booking-id" className="mb-2 block text-sm font-semibold text-gray-800">
-          Visit reference
+        <label htmlFor="patient-email" className="mb-2 block text-sm font-semibold text-gray-800">
+          Email address
         </label>
         <input
-          id="booking-id"
+          id="patient-email"
           required
-          autoComplete="off"
-          placeholder="e.g. VIS-7K2M-4Q9R"
-          value={id}
-          onChange={(event) => setId(event.target.value)}
-          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
         />
-        <p className="mt-2 text-xs leading-5 text-gray-500">
-          Your reference number was shown after you booked your visit.
-        </p>
       </div>
+      <div>
+        <label htmlFor="patient-password" className="mb-2 block text-sm font-semibold text-gray-800">Password</label>
+        <input id="patient-password" required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
+      </div>
+      {error && <Alert>{error}</Alert>}
       <button
         type="submit"
-        className="rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+        disabled={loading}
+        className="rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:opacity-60"
       >
-        Find my visit
+        {loading ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-sm text-gray-600">New to Morrow Care? <Link className="font-semibold text-emerald-800 underline" href="/sign-up">Create an account</Link></p>
     </form>
   );
 }

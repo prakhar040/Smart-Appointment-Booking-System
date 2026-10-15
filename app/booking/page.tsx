@@ -4,11 +4,9 @@ export default function BookingPage() {
   return (
     <main className="subpage-shell">
       <header className="subpage-hero">
-        <p className="eyebrow eyebrow-dark">YOUR VISIT, AT YOUR FINGERTIPS</p>
-        <h1>Pick up where you left off.</h1>
-        <p>
-          Enter the visit reference from your confirmation to review the details or cancel your appointment.
-        </p>
+        <p className="eyebrow eyebrow-dark">WELCOME BACK</p>
+        <h1>Sign in to your account.</h1>
+        <p>View your appointments, manage your visits, and book your next appointment.</p>
       </header>
       <section className="subpage-card">
         <BookingLookup />

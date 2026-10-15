@@ -4,10 +4,10 @@ export default function AppointmentsPage() {
   return (
     <main className="subpage-shell subpage-wide">
       <header className="subpage-hero">
-        <p className="eyebrow eyebrow-dark">THE CLINIC DESK</p>
-        <h1>Every visit, in one place.</h1>
+        <p className="eyebrow eyebrow-dark">YOUR CARE, IN ONE PLACE</p>
+        <h1>Your appointments.</h1>
         <p>
-          Review upcoming and past visits. Cancelled visits remain in the clinic history.
+          Review upcoming and past visits linked to your patient account.
         </p>
       </header>
       <AppointmentsTable />

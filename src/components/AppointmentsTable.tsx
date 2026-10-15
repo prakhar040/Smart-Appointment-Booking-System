@@ -12,6 +12,8 @@ export default function AppointmentsTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [referenceQuery, setReferenceQuery] = useState("");
+  const [dateQuery, setDateQuery] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [pendingCancel, setPendingCancel] = useState<AppointmentDto | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -65,6 +67,12 @@ export default function AppointmentsTable() {
     }
   }
 
+  const normalizedReferenceQuery = referenceQuery.trim().toLowerCase().replace(/[\s-]/g, "");
+  const filteredItems = items.filter((appointment) =>
+    appointment.reference.toLowerCase().replace(/[\s-]/g, "").includes(normalizedReferenceQuery) &&
+    (!dateQuery || appointment.date === dateQuery),
+  );
+
   if (loading) {
     return (
       <div className="space-y-3" aria-label="Loading appointments">
@@ -79,6 +87,9 @@ export default function AppointmentsTable() {
     return (
       <div className="space-y-4">
         <Alert>{error}</Alert>
+        {error.toLowerCase().includes("sign in") && (
+          <Link href="/booking" className="inline-flex rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Sign in to view your visits</Link>
+        )}
         <button
           type="button"
           onClick={refresh}
@@ -92,18 +103,17 @@ export default function AppointmentsTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">
-          {items.length} {items.length === 1 ? "visit" : "visits"}
-        </p>
-        <button
-          type="button"
-          onClick={refresh}
-          className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-        >
-          Refresh list
-        </button>
-      </div>
+      <section aria-label="Search your visits" className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px] sm:p-5">
+        <div>
+          <label htmlFor="visit-reference-search" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Visit reference</label>
+          <input id="visit-reference-search" type="search" value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search by reference" className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
+        </div>
+        <div>
+          <label htmlFor="visit-date-search" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Visit date</label>
+          <input id="visit-date-search" type="date" value={dateQuery} onChange={(event) => setDateQuery(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
+        </div>
+        <p className="text-xs text-gray-500 sm:col-span-2" aria-live="polite">Showing {filteredItems.length} of {items.length} {items.length === 1 ? "visit" : "visits"}</p>
+      </section>
 
       {notice && <Notice>{notice}</Notice>}
       {actionError && <Alert>{actionError}</Alert>}
@@ -113,41 +123,40 @@ export default function AppointmentsTable() {
           <h2 className="font-semibold text-gray-900">No visits on the schedule yet</h2>
           <p className="mt-1 text-sm text-gray-500">Newly booked visits will appear here.</p>
         </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+          <h2 className="font-semibold text-gray-900">No visits match those filters</h2>
+          <p className="mt-1 text-sm text-gray-500">Try another reference or choose a different date.</p>
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <caption className="sr-only">Clinic visits, newest first</caption>
+          <table className="w-full min-w-[850px] text-left text-sm">
+            <caption className="sr-only">Your visits, newest first</caption>
             <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <tr>
                 <th scope="col" className="px-4 py-3">Doctor</th>
-                <th scope="col" className="px-4 py-3">Patient</th>
+                <th scope="col" className="px-4 py-3">Visit reference</th>
                 <th scope="col" className="px-4 py-3">Date</th>
                 <th scope="col" className="px-4 py-3">Time (IST)</th>
                 <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {items.map((appointment) => {
+              {filteredItems.map((appointment) => {
                 const cancelled = appointment.status === "CANCELLED";
                 return (
                   <tr key={appointment.id} className={cancelled ? "bg-gray-50/70 text-gray-500" : "text-gray-800"}>
                     <td className="whitespace-nowrap px-4 py-4 font-medium">{appointment.provider.name}</td>
-                    <td className="px-4 py-4">
-                      <div className={cancelled ? "text-gray-500" : "font-medium text-gray-900"}>{appointment.customerName}</div>
-                      <div className="mt-0.5 text-xs text-gray-500">{appointment.customerEmail}</div>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <Link href={`/booking/${appointment.reference}`} className="font-mono text-xs font-semibold text-emerald-800 underline decoration-emerald-300 underline-offset-4 hover:text-emerald-950">
+                        {appointment.reference}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">{formatDate(appointment.date)}</td>
                     <td className="whitespace-nowrap px-4 py-4">{formatTime(appointment.startTime)} – {formatTime(appointment.endTime)}</td>
-                    <td className="px-4 py-4"><StatusBadge status={appointment.status} /></td>
-                    <td className="whitespace-nowrap px-4 py-4 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/booking/${appointment.reference}`}
-                          className="text-xs font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
-                        >
-                          Details
-                        </Link>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <StatusBadge status={appointment.status} />
                         {!cancelled && (
                           <button
                             type="button"

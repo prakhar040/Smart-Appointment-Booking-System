@@ -82,6 +82,9 @@ export default function BookingDetails({ id }: { id: string }) {
     return (
       <div className="space-y-4">
         <Alert>{state.message}</Alert>
+        {state.message.toLowerCase().includes("sign in") && (
+          <Link href="/booking" className="inline-flex rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Sign in to manage this visit</Link>
+        )}
         <button
           type="button"
           onClick={() => setReloadKey((key) => key + 1)}

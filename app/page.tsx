@@ -28,7 +28,7 @@ export default function Home() {
           </p>
           <div className="hero-proof">
             <span className="proof-icon" aria-hidden="true">✓</span>
-            <span>No account needed</span><span className="proof-divider" />
+            <span>Secure patient account</span><span className="proof-divider" />
             <span>All times shown in IST</span>
           </div>
         </div>
