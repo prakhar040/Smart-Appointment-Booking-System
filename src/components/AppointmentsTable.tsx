@@ -71,16 +71,17 @@ export default function AppointmentsTable() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[850px] text-left text-sm">
+          <table className="w-full min-w-[1040px] text-left text-sm">
             <caption className="sr-only">All appointments, newest first</caption>
             <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <tr>
                 <th scope="col" className="px-4 py-3">Doctor</th>
                 <th scope="col" className="px-4 py-3">Patient</th>
+                <th scope="col" className="px-4 py-3">Reference ID</th>
                 <th scope="col" className="px-4 py-3">Date</th>
                 <th scope="col" className="px-4 py-3">Time (IST)</th>
                 <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
+                <th scope="col" className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -91,23 +92,28 @@ export default function AppointmentsTable() {
                     <span className="block font-medium">{appointment.customerName}</span>
                     <span className="text-xs text-gray-500">{appointment.customerEmail}</span>
                   </td>
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <Link
+                      href={`/booking/${appointment.reference}`}
+                      className="font-semibold text-emerald-800 underline decoration-emerald-300 underline-offset-4 hover:text-emerald-950 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                    >
+                      {appointment.reference}
+                    </Link>
+                  </td>
                   <td className="whitespace-nowrap px-4 py-4">{formatDate(appointment.date)}</td>
                   <td className="whitespace-nowrap px-4 py-4">{formatTime(appointment.startTime)} – {formatTime(appointment.endTime)}</td>
                   <td className="px-4 py-4"><StatusBadge status={appointment.status} /></td>
                   <td className="whitespace-nowrap px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-4">
-                      <Link href={`/booking/${appointment.reference}`} className="font-semibold text-emerald-800 underline underline-offset-4">{appointment.reference}</Link>
-                      {appointment.status === "BOOKED" && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingCancel(appointment)}
-                          disabled={cancelling}
-                          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
+                    {appointment.status === "BOOKED" && (
+                      <button
+                        type="button"
+                        onClick={() => setPendingCancel(appointment)}
+                        disabled={cancelling}
+                        className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
