@@ -37,8 +37,8 @@ export default function Home() {
 
       <div className="section-intro">
         <div>
-          <p className="eyebrow eyebrow-dark">MAKE IT YOURS</p>
-          <h2>Let’s find your moment.</h2>
+          <p className="eyebrow eyebrow-dark">BOOK ONLINE</p>
+          <h2>Find a time that works for you.</h2>
         </div>
         <p>Monday–Saturday <span>·</span> 10 AM–6 PM</p>
       </div>

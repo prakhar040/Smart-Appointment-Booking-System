@@ -143,6 +143,19 @@ button { cursor: pointer; }
   box-shadow: 0 12px 40px #18372c0b !important;
 }
 .booking-card { padding: 32px !important; }
+.account-prompt { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 27px 32px !important; }
+.account-prompt-copy { display: flex; align-items: center; gap: 17px; }
+.account-prompt > div:first-child { gap: 17px !important; }
+.account-prompt-icon { width: 46px; height: 46px; display: grid; flex: 0 0 46px; place-items: center; border: 1px solid #dce8dc; border-radius: 15px; color: #1c5949; background: #eef4eb; }
+.account-prompt-copy .eyebrow { margin-bottom: 5px; }
+.account-prompt-copy h2 { margin: 0; color: #203e33; font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-weight: 400; letter-spacing: -.025em; }
+.account-prompt-copy > div > p:last-child { margin: 5px 0 0; color: #748178; font-size: 12px; line-height: 1.5; }
+.account-prompt-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+.account-primary-action, .account-secondary-action { display: inline-flex; min-height: 43px; align-items: center; justify-content: center; padding: 0 18px; border-radius: 999px; font-size: 12px; font-weight: 700; text-decoration: none; transition: background .18s, color .18s, transform .18s; }
+.account-primary-action { color: #fff; background: #1c5949; box-shadow: 0 5px 12px #1c59491c; }
+.account-primary-action:hover { background: #143f34; transform: translateY(-1px); }
+.account-secondary-action { border: 1px solid #dfe3d9; color: #385447; background: #fffefa; }
+.account-secondary-action:hover { border-color: #aabdaf; background: #f6f8f2; }
 .booking-card > div:first-child { gap: 31px !important; }
 .provider-prompt { margin: -4px 0 19px 43px; color: #7b8980; font-size: 12px; line-height: 1.6; }
 .booking-flow-no-provider { grid-template-columns: 1fr !important; }
@@ -228,6 +241,14 @@ button { cursor: pointer; }
   .section-intro { align-items: start; flex-direction: column; gap: 8px; margin: 33px 2px 16px; }
   .section-intro h2 { font-size: 27px; }
   .booking-card { padding: 22px 18px !important; }
+  .account-prompt { align-items: stretch; flex-direction: column; gap: 19px; padding: 22px 18px !important; }
+  .account-prompt-copy { align-items: flex-start; gap: 12px; }
+  .account-prompt > div:first-child { gap: 12px !important; }
+  .account-prompt-icon { width: 39px; height: 39px; flex-basis: 39px; border-radius: 12px; }
+  .account-prompt-copy h2 { font-size: 20px; }
+  .account-prompt-copy > div > p:last-child { max-width: 34ch; }
+  .account-prompt-actions { width: 100%; }
+  .account-prompt-actions > a { flex: 1; }
   .booking-card > div:first-child { gap: 25px !important; }
   .booking-flow { grid-template-columns: 1fr !important; }
   .booking-flow-no-provider .booking-card { padding: 23px 18px !important; }

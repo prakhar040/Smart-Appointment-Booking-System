@@ -164,13 +164,23 @@ export default function BookingFlow() {
 
   if (!email) {
     return (
-      <section className="booking-card rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-12">
-        <p className="eyebrow eyebrow-dark">A SECURE SPACE FOR YOUR CARE</p>
-        <h2 className="mt-3 text-2xl font-semibold text-gray-950">Sign in to book a visit</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-600">Your patient account keeps your visit history private and lets you manage your appointments.</p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link href="/booking" className="rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-900">Sign in</Link>
-          <Link href="/sign-up" className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">Create account</Link>
+      <section className="booking-card account-prompt">
+        <div className="account-prompt-copy">
+          <span className="account-prompt-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5 19 6v5.2c0 4.3-2.8 7.4-7 9.3-4.2-1.9-7-5-7-9.3V6l7-2.5Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
+            </svg>
+          </span>
+          <div>
+            <p className="eyebrow eyebrow-dark">PATIENT ACCOUNT</p>
+            <h2>Sign in to book a visit</h2>
+            <p>Your account keeps your appointment details together and private.</p>
+          </div>
+        </div>
+        <div className="account-prompt-actions">
+          <Link href="/booking" className="account-primary-action">Sign in</Link>
+          <Link href="/sign-up" className="account-secondary-action">Create account</Link>
         </div>
       </section>
     );

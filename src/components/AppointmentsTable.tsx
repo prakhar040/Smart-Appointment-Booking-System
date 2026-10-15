@@ -14,6 +14,7 @@ export default function AppointmentsTable() {
   const [reloadKey, setReloadKey] = useState(0);
   const [referenceQuery, setReferenceQuery] = useState("");
   const [dateQuery, setDateQuery] = useState("");
+  const [statusQuery, setStatusQuery] = useState<"ALL" | "BOOKED" | "CANCELLED">("ALL");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [pendingCancel, setPendingCancel] = useState<AppointmentDto | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -70,7 +71,8 @@ export default function AppointmentsTable() {
   const normalizedReferenceQuery = referenceQuery.trim().toLowerCase().replace(/[\s-]/g, "");
   const filteredItems = items.filter((appointment) =>
     appointment.reference.toLowerCase().replace(/[\s-]/g, "").includes(normalizedReferenceQuery) &&
-    (!dateQuery || appointment.date === dateQuery),
+    (!dateQuery || appointment.date === dateQuery) &&
+    (statusQuery === "ALL" || appointment.status === statusQuery),
   );
 
   if (loading) {
@@ -103,7 +105,7 @@ export default function AppointmentsTable() {
 
   return (
     <div className="space-y-4">
-      <section aria-label="Search your visits" className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px] sm:p-5">
+      <section aria-label="Search and filter your visits" className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_190px] sm:p-5">
         <div>
           <label htmlFor="visit-reference-search" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Visit reference</label>
           <input id="visit-reference-search" type="search" value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search by reference" className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
@@ -112,7 +114,15 @@ export default function AppointmentsTable() {
           <label htmlFor="visit-date-search" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Visit date</label>
           <input id="visit-date-search" type="date" value={dateQuery} onChange={(event) => setDateQuery(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
         </div>
-        <p className="text-xs text-gray-500 sm:col-span-2" aria-live="polite">Showing {filteredItems.length} of {items.length} {items.length === 1 ? "visit" : "visits"}</p>
+        <div>
+          <label htmlFor="visit-status-filter" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Status</label>
+          <select id="visit-status-filter" value={statusQuery} onChange={(event) => setStatusQuery(event.target.value as typeof statusQuery)} className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20">
+            <option value="ALL">All visits</option>
+            <option value="BOOKED">Confirmed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <p className="text-xs text-gray-500 sm:col-span-3" aria-live="polite">Showing {filteredItems.length} of {items.length} {items.length === 1 ? "visit" : "visits"}</p>
       </section>
 
       {notice && <Notice>{notice}</Notice>}
