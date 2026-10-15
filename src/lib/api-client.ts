@@ -73,9 +73,10 @@ export const api = {
     customerName: string;
     customerEmail: string;
     startTime: string;
-  }) =>
+  }, idempotencyKey: string) =>
     request<{ appointment: AppointmentDto }>("/api/appointments", {
       method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(body),
     }),
 

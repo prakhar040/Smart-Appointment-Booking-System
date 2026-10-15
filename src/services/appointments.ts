@@ -72,12 +72,27 @@ export async function getAvailability(providerId: string, date: string, now = ne
   return { providerId, date, closed: false, slots: result };
 }
 
-export async function bookAppointment(raw: unknown, patientEmail: string, now = new Date()) {
+export async function bookAppointment(
+  raw: unknown,
+  patientEmail: string,
+  idempotencyKey: string,
+  now = new Date(),
+) {
+  if (!isUuid(idempotencyKey)) {
+    throw new AppError("VALIDATION_ERROR", "A valid Idempotency-Key header is required", 400);
+  }
   const accountBoundInput = raw && typeof raw === "object" && !Array.isArray(raw)
     ? { ...raw, customerEmail: patientEmail }
     : raw;
   const parsed = parseInput(bookingSchema, accountBoundInput);
   const input = { ...parsed, customerEmail: patientEmail };
+
+  const existing = await prisma.appointment.findUnique({
+    where: { idempotencyKey },
+    include: { provider: true },
+  });
+  if (existing) return matchIdempotentBooking(existing, input);
+
   const slot = validateSlot(new Date(input.startTime), now);
   await requireProvider(input.providerId);
 
@@ -88,6 +103,7 @@ export async function bookAppointment(raw: unknown, patientEmail: string, now = 
     try {
       return await prisma.appointment.create({
         data: {
+          idempotencyKey,
           reference,
           providerId: input.providerId,
           customerName: input.customerName,
@@ -99,6 +115,11 @@ export async function bookAppointment(raw: unknown, patientEmail: string, now = 
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        const replay = await prisma.appointment.findUnique({
+          where: { idempotencyKey },
+          include: { provider: true },
+        });
+        if (replay) return matchIdempotentBooking(replay, input);
         const referenceExists = await prisma.appointment.findUnique({
           where: { reference },
           select: { id: true },
@@ -110,6 +131,27 @@ export async function bookAppointment(raw: unknown, patientEmail: string, now = 
     }
   }
   throw new AppError("INTERNAL_ERROR", "Could not create a visit reference. Please try again.", 503);
+}
+
+function matchIdempotentBooking<T extends {
+  providerId: string;
+  customerName: string;
+  customerEmail: string;
+  startTime: Date;
+}>(appointment: T, input: {
+  providerId: string;
+  customerName: string;
+  customerEmail: string;
+  startTime: string;
+}) {
+  const matches = appointment.providerId === input.providerId
+    && appointment.customerName === input.customerName
+    && appointment.customerEmail === input.customerEmail
+    && appointment.startTime.getTime() === new Date(input.startTime).getTime();
+  if (!matches) {
+    throw new AppError("CONFLICT", "This booking request key was already used for different details.", 409);
+  }
+  return appointment;
 }
 
 function appointmentSelector(idOrReference: string) {

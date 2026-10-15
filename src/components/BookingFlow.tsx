@@ -40,6 +40,7 @@ export default function BookingFlow() {
   const [confirmed, setConfirmed] = useState<AppointmentDto | null>(null);
   const [copied, setCopied] = useState(false);
   const inFlight = useRef(false);
+  const idempotency = useRef<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
     api.patientSession()
@@ -119,12 +120,44 @@ export default function BookingFlow() {
     setFormError(null);
 
     try {
-      const { appointment } = await api.book({
+      const body = {
         providerId,
         customerName: name,
         customerEmail: email,
         startTime: selected.start,
-      });
+      };
+      const fingerprintBytes = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify(body)),
+      );
+      const fingerprint = Array.from(new Uint8Array(fingerprintBytes), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join("");
+      let stored: { fingerprint: string; key: string } | null = null;
+      try {
+        stored = JSON.parse(sessionStorage.getItem("morrow:pending-booking") ?? "null");
+      } catch {
+        // A fresh key is generated below if session storage is unavailable.
+      }
+      const pending = idempotency.current?.fingerprint === fingerprint
+        ? idempotency.current
+        : stored?.fingerprint === fingerprint
+          ? stored
+          : { fingerprint, key: crypto.randomUUID() };
+      idempotency.current = pending;
+      try {
+        sessionStorage.setItem("morrow:pending-booking", JSON.stringify(pending));
+      } catch {
+        // The in-memory key still protects retries during this page session.
+      }
+
+      const { appointment } = await api.book(body, pending.key);
+      idempotency.current = null;
+      try {
+        sessionStorage.removeItem("morrow:pending-booking");
+      } catch {
+        // The completed booking is already confirmed by the server.
+      }
       setConfirmed(appointment);
     } catch (error) {
       setFormError(errorMessage(error));
@@ -153,6 +186,12 @@ export default function BookingFlow() {
     setConfirmed(null);
     setSelected(null);
     setName("");
+    idempotency.current = null;
+    try {
+      sessionStorage.removeItem("morrow:pending-booking");
+    } catch {
+      // Ignore unavailable browser storage.
+    }
     setEmail("");
     setFormError(null);
     refreshSlots();

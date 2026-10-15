@@ -15,6 +15,7 @@ export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [patientEmail, setPatientEmail] = useState<string | null>(null);
+  const isAuthPage = pathname === "/booking" || pathname === "/sign-up";
   useEffect(() => {
     api.patientSession().then((session) => setPatientEmail(session.email)).catch(() => setPatientEmail(null));
   }, [pathname]);
@@ -34,7 +35,7 @@ export default function Nav() {
           <span className="brand-mark" aria-hidden="true"><span /><span /><span /><span /></span>
           <span>morrow<span className="brand-period">.</span><small>care, made a little easier</small></span>
         </Link>
-        <div className="nav-links">{visibleLinks.map((link) => {
+        {!isAuthPage && <div className="nav-links">{visibleLinks.map((link) => {
           const href = link.href === "/" && !patientEmail ? "/booking" : link.href;
           const active = link.href === "/" ? pathname === "/" : isActive(link.href);
           return (
@@ -57,7 +58,7 @@ export default function Nav() {
           ) : !landingSignedOut ? (
             <Link href="/sign-up" className="nav-link">Create account</Link>
           ) : null}
-        </div>
+        </div>}
       </div>
     </nav>
   );

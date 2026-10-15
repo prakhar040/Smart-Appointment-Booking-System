@@ -30,6 +30,7 @@ model Patient {
 model Appointment {
   id            String            @id @default(uuid()) @db.Uuid
   reference     String            @unique @db.VarChar(13)
+  idempotencyKey String           @unique @db.Uuid
   providerId    String            @db.Uuid
   customerName  String
   customerEmail String

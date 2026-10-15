@@ -15,7 +15,8 @@ export function POST(request: Request) {
   return handle(async () => {
     const email = requirePatient(request);
     const body = await readJson(request);
-    const appointment = await bookAppointment(body, email);
+    const idempotencyKey = request.headers.get("Idempotency-Key") ?? "";
+    const appointment = await bookAppointment(body, email, idempotencyKey);
     return json({ appointment: toAppointmentDto(appointment) }, 201);
   });
 }
