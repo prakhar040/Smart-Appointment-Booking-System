@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, errorMessage } from "@/lib/api-client";
 import { Alert } from "./ui";
+import PasswordInput from "./PasswordInput";
 
 export default function BookingLookup() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function BookingLookup() {
       </div>
       <div>
         <label htmlFor="patient-password" className="mb-2 block text-sm font-semibold text-gray-800">Password</label>
-        <input id="patient-password" required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20" />
+        <PasswordInput id="patient-password" required autoComplete="current-password" value={password} onChange={setPassword} />
       </div>
       {error && <Alert>{error}</Alert>}
       <button
