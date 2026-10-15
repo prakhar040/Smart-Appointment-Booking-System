@@ -3,7 +3,8 @@
 import { use, useEffect, useRef, useState } from "react";
 import { io } from "next/cache";
 import type { AppointmentDto } from "@/lib/dto";
-import { api, ApiClientError, type ProviderDto, type SlotsResponse } from "@/lib/api-client";
+import { api, ApiClientError, errorMessage, type ProviderDto, type SlotsResponse } from "@/lib/api-client";
+import { Alert, Row } from "./ui";
 import {
   formatDate,
   formatTime,
@@ -13,11 +14,6 @@ import {
 } from "@/lib/format";
 
 type Slot = SlotsResponse["slots"][number];
-
-const errMsg = (error: unknown) =>
-  error instanceof ApiClientError
-    ? error.message
-    : "Something went wrong. Please try again.";
 
 export default function BookingFlow() {
   use(io());
@@ -51,7 +47,7 @@ export default function BookingFlow() {
         if (active) setProviders(response.providers);
       })
       .catch((error: unknown) => {
-        if (active) setProvidersError(errMsg(error));
+        if (active) setProvidersError(errorMessage(error));
       })
       .finally(() => {
         if (active) setProvidersLoading(false);
@@ -72,7 +68,7 @@ export default function BookingFlow() {
       .catch((error: unknown) => {
         if (active) {
           setSlots(null);
-          setSlotsError(errMsg(error));
+          setSlotsError(errorMessage(error));
         }
       })
       .finally(() => {
@@ -122,7 +118,7 @@ export default function BookingFlow() {
       });
       setConfirmed(appointment);
     } catch (error) {
-      setFormError(errMsg(error));
+      setFormError(errorMessage(error));
       if (error instanceof ApiClientError && error.status === 409) {
         setSelected(null);
         refreshSlots();
@@ -229,7 +225,7 @@ export default function BookingFlow() {
                 setProvidersError(null);
                 api.providers()
                   .then((response) => setProviders(response.providers))
-                  .catch((error: unknown) => setProvidersError(errMsg(error)))
+                  .catch((error: unknown) => setProvidersError(errorMessage(error)))
                   .finally(() => setProvidersLoading(false));
               }}
               className="text-sm font-semibold text-emerald-800 underline underline-offset-4"
@@ -456,15 +452,6 @@ function StepHeading({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-3">
-      <dt className="w-20 shrink-0 text-gray-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
-  );
-}
-
 function SummaryRow({
   label,
   value,
@@ -484,10 +471,3 @@ function SummaryRow({
   );
 }
 
-function Alert({ children }: { children: React.ReactNode }) {
-  return (
-    <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      {children}
-    </p>
-  );
-}

@@ -20,6 +20,11 @@ export class ApiClientError extends Error {
   }
 }
 
+export const errorMessage = (error: unknown) =>
+  error instanceof ApiClientError
+    ? error.message
+    : "Something went wrong. Please try again.";
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
