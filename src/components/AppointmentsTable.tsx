@@ -94,7 +94,7 @@ export default function AppointmentsTable() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-600">
-          {items.length} {items.length === 1 ? "appointment" : "appointments"}
+          {items.length} {items.length === 1 ? "visit" : "visits"}
         </p>
         <button
           type="button"
@@ -110,17 +110,17 @@ export default function AppointmentsTable() {
 
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center">
-          <h2 className="font-semibold text-gray-900">No appointments yet</h2>
-          <p className="mt-1 text-sm text-gray-500">New bookings will appear here.</p>
+          <h2 className="font-semibold text-gray-900">No visits on the schedule yet</h2>
+          <p className="mt-1 text-sm text-gray-500">Newly booked visits will appear here.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <caption className="sr-only">All appointments, newest first</caption>
+            <caption className="sr-only">Clinic visits, newest first</caption>
             <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <tr>
-                <th scope="col" className="px-4 py-3">Provider</th>
-                <th scope="col" className="px-4 py-3">Customer</th>
+                <th scope="col" className="px-4 py-3">Doctor</th>
+                <th scope="col" className="px-4 py-3">Patient</th>
                 <th scope="col" className="px-4 py-3">Date</th>
                 <th scope="col" className="px-4 py-3">Time (IST)</th>
                 <th scope="col" className="px-4 py-3">Status</th>
@@ -146,7 +146,7 @@ export default function AppointmentsTable() {
                           href={`/booking/${appointment.id}`}
                           className="text-xs font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
                         >
-                          View
+                          Details
                         </Link>
                         {!cancelled && (
                           <button
@@ -169,11 +169,11 @@ export default function AppointmentsTable() {
       )}
       <ConfirmDialog
         open={pendingCancel !== null}
-        title="Cancel this appointment?"
+        title="Cancel this visit?"
         description={pendingCancel
-          ? `You are cancelling ${pendingCancel.customerName} with ${pendingCancel.provider.name} on ${formatDate(pendingCancel.date)} at ${formatTime(pendingCancel.startTime)} IST. The appointment will remain in the history.`
-          : "This appointment will remain in the history."}
-        confirmLabel="Yes, cancel appointment"
+          ? `Cancel ${pendingCancel.customerName}’s visit with ${pendingCancel.provider.name} on ${formatDate(pendingCancel.date)} at ${formatTime(pendingCancel.startTime)} IST? It will remain in the visit history.`
+          : "This visit will remain in the history."}
+        confirmLabel="Yes, cancel visit"
         pending={cancellingId !== null}
         onCancel={() => setPendingCancel(null)}
         onConfirm={confirmCancel}

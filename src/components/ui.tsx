@@ -32,7 +32,7 @@ export function StatusBadge({ status }: { status: "BOOKED" | "CANCELLED" }) {
       : "bg-gray-100 text-gray-600";
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${style}`}>
-      {status === "BOOKED" ? "Booked" : "Cancelled"}
+      {status === "BOOKED" ? "Confirmed" : "Cancelled"}
     </span>
   );
 }
@@ -101,7 +101,7 @@ export function ConfirmDialog({
             disabled={pending}
             className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-700 disabled:opacity-50"
           >
-            Keep appointment
+            Keep this visit
           </button>
           <button
             type="button"

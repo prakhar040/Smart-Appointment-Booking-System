@@ -13,8 +13,8 @@ export function POST(
       appointment: toAppointmentDto(appointment),
       alreadyCancelled,
       message: alreadyCancelled
-        ? "Appointment was already cancelled."
-        : "Appointment cancelled.",
+        ? "This visit was already cancelled."
+        : "Your visit has been cancelled.",
     });
   });
 }

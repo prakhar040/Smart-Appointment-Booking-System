@@ -2,7 +2,14 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const PROVIDERS = ["Dr. Asha Verma", "Dr. Rohan Mehta"];
+const PROVIDERS = [
+  "Dr. Asha Verma",
+  "Dr. Rohan Mehta",
+  "Dr. Nisha Iyer",
+  "Dr. Kabir Sethi",
+  "Dr. Meera Nair",
+  "Dr. Arjun Rao",
+];
 
 async function main() {
   for (const name of PROVIDERS) {
@@ -12,7 +19,7 @@ async function main() {
       create: { name },
     });
   }
-  console.log("Seeded providers:", PROVIDERS.join(", "));
+  console.log(`Seeded ${PROVIDERS.length} providers:`, PROVIDERS.join(", "));
 }
 
 main()

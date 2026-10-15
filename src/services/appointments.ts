@@ -16,7 +16,7 @@ async function requireProvider(providerId: string) {
   const provider = isUuid(providerId)
     ? await prisma.provider.findUnique({ where: { id: providerId } })
     : null;
-  if (!provider) throw new AppError("NOT_FOUND", "Provider not found", 404);
+  if (!provider) throw new AppError("NOT_FOUND", "Doctor not found", 404);
   return provider;
 }
 

@@ -70,9 +70,9 @@ export default function BookingDetails({ id }: { id: string }) {
   if (state.kind === "notfound") {
     return (
       <div className="space-y-4">
-        <Alert>No booking was found with that ID. Check it and try again.</Alert>
+        <Alert>No visit was found with that reference. Check the number and try again.</Alert>
         <Link href="/booking" className="inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4">
-          Try another ID
+          Enter another reference
         </Link>
       </div>
     );
@@ -98,20 +98,20 @@ export default function BookingDetails({ id }: { id: string }) {
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Appointment</p>
-          <h2 className="mt-1 text-xl font-semibold text-gray-950">Booking details</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">YOUR VISIT</p>
+          <h2 className="mt-1 text-xl font-semibold text-gray-950">Visit details</h2>
         </div>
         <StatusBadge status={appointment.status} />
       </div>
 
       <dl className="mt-6 space-y-4 border-y border-gray-100 py-5 text-sm">
-        <Row label="Provider" value={appointment.provider.name} />
+        <Row label="Doctor" value={appointment.provider.name} />
         <Row label="Date" value={formatDate(appointment.date)} />
         <Row label="Time" value={`${formatTime(appointment.startTime)} – ${formatTime(appointment.endTime)} IST`} />
-        <Row label="Name" value={appointment.customerName} />
-        <Row label="Email" value={appointment.customerEmail} />
+        <Row label="Your name" value={appointment.customerName} />
+        <Row label="Contact email" value={appointment.customerEmail} />
       </dl>
-      <p className="mt-4 break-all text-xs text-gray-400">Booking ID: {appointment.id}</p>
+      <p className="mt-4 break-all text-xs text-gray-400">Visit reference: {appointment.id}</p>
 
       {notice && <div className="mt-5"><Notice>{notice}</Notice></div>}
       {actionError && <div className="mt-5"><Alert>{actionError}</Alert></div>}
@@ -124,19 +124,19 @@ export default function BookingDetails({ id }: { id: string }) {
             disabled={cancelling}
             className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-wait disabled:opacity-50"
           >
-            {cancelling ? "Cancelling…" : "Cancel appointment"}
+            {cancelling ? "Cancelling…" : "Cancel this visit"}
           </button>
         ) : (
           <Link href="/" className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">
-            Book a new appointment
+            Book another visit
           </Link>
         )}
       </div>
       <ConfirmDialog
         open={confirmOpen}
-        title="Cancel this appointment?"
-        description={`You are cancelling ${appointment.provider.name} on ${formatDate(appointment.date)} at ${formatTime(appointment.startTime)} IST. The appointment will remain in your history.`}
-        confirmLabel="Yes, cancel appointment"
+        title="Cancel this visit?"
+        description={`You’re cancelling your visit with ${appointment.provider.name} on ${formatDate(appointment.date)} at ${formatTime(appointment.startTime)} IST. You can book another time whenever you’re ready.`}
+        confirmLabel="Yes, cancel my visit"
         pending={cancelling}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={confirmCancel}

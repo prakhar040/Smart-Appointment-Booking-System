@@ -1,31 +1,56 @@
 import BookingFlow from "@/components/BookingFlow";
 import { Suspense } from "react";
 
+function HeroArt() {
+  return (
+    <div className="hero-art" aria-hidden="true">
+      <div className="hero-art-orbit" />
+      <div className="hero-art-card">
+        <span className="hero-art-label">A little time for you</span>
+        <span className="hero-art-date">Your health,<br />on your schedule.</span>
+        <span className="hero-art-bottom"><span className="hero-art-dot" /> Thoughtful care, made simple</span>
+      </div>
+      <span className="hero-spark hero-spark-one">✳</span>
+      <span className="hero-spark hero-spark-two">✦</span>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-8 text-gray-900 sm:px-6 sm:py-12">
-      <header className="mb-8 flex flex-col gap-6 border-b border-gray-200 pb-7 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">
-            <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
-            Appointment care
-        </p>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
-            Book an appointment
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-gray-600 sm:text-base">
-            Choose a provider, a date and a time that works for you. No account needed.
+    <main className="page-shell">
+      <section className="booking-hero">
+        <div className="hero-copy">
+          <p className="eyebrow"><span className="eyebrow-mark" /> Care that fits your life</p>
+          <h1>Good care starts<br /><span>with a good time.</span></h1>
+          <p className="hero-description">
+            Choose your doctor, find a time that feels right, and get back to the things that matter.
           </p>
+          <div className="hero-proof">
+            <span className="proof-icon" aria-hidden="true">✓</span>
+            <span>No account needed</span><span className="proof-divider" />
+            <span>All times shown in IST</span>
+          </div>
         </div>
-        <p className="text-sm font-medium text-gray-500">Monday–Saturday <span className="mx-1 text-gray-300">·</span> 10 AM–6 PM IST</p>
-      </header>
-      <Suspense
-        fallback={
-          <div className="min-h-72 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Loading booking form" />
-        }
-      >
+        <HeroArt />
+      </section>
+
+      <div className="section-intro">
+        <div>
+          <p className="eyebrow eyebrow-dark">MAKE IT YOURS</p>
+          <h2>Let’s find your moment.</h2>
+        </div>
+        <p>Monday–Saturday <span>·</span> 10 AM–6 PM</p>
+      </div>
+
+      <Suspense fallback={<div className="booking-skeleton" aria-label="Loading booking form"><div /><div /></div>}>
         <BookingFlow />
       </Suspense>
+
+      <footer className="page-footer">
+        <span>Care, at your own pace.</span>
+        <span>All times shown in India Standard Time</span>
+      </footer>
     </main>
   );
 }

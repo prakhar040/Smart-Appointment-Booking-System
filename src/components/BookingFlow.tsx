@@ -151,27 +151,27 @@ export default function BookingFlow() {
 
   if (confirmed) {
     return (
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 sm:p-8">
+      <section className="confirmation-card rounded-2xl border border-emerald-200 bg-emerald-50 p-6 sm:p-8">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-800" aria-hidden="true">
           ✓
         </div>
-        <h2 className="mt-4 text-2xl font-semibold text-emerald-950">Booking confirmed</h2>
-        <p className="mt-1 text-sm text-emerald-900/75">Your appointment is in the calendar.</p>
+        <h2 className="mt-4 text-2xl font-semibold text-emerald-950">You’re all set</h2>
+        <p className="mt-1 text-sm text-emerald-900/75">Your visit has been booked.</p>
 
         <dl className="mt-6 space-y-3 text-sm text-gray-800">
-          <Row label="Provider" value={confirmed.provider.name} />
+          <Row label="Doctor" value={confirmed.provider.name} />
           <Row label="Date" value={formatDate(confirmed.date)} />
           <Row
             label="Time"
             value={`${formatTime(confirmed.startTime)} – ${formatTime(confirmed.endTime)} IST`}
           />
-          <Row label="Name" value={confirmed.customerName} />
+          <Row label="Your name" value={confirmed.customerName} />
           <Row label="Email" value={confirmed.customerEmail} />
         </dl>
 
         <div className="mt-6 rounded-xl border border-emerald-100 bg-white p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Booking ID · keep this to view or cancel
+            Visit reference · save this to manage your visit
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <code className="break-all text-sm font-semibold text-gray-900">{confirmed.id}</code>
@@ -180,7 +180,7 @@ export default function BookingFlow() {
               onClick={copyId}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
             >
-              {copied ? "Copied" : "Copy ID"}
+              {copied ? "Copied" : "Copy reference"}
             </button>
           </div>
         </div>
@@ -190,14 +190,14 @@ export default function BookingFlow() {
             href={`/booking/${confirmed.id}`}
             className="rounded-lg bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
           >
-            View booking
+            View visit details
           </a>
           <button
             type="button"
             onClick={reset}
             className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
           >
-            Book another
+            Book another visit
           </button>
         </div>
       </section>
@@ -205,11 +205,12 @@ export default function BookingFlow() {
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+    <div className={`booking-flow grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 ${providerId ? "" : "booking-flow-no-provider"}`}>
+      <div className={`booking-card rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 ${providerId ? "" : "col-span-full w-full"}`}>
       <div className="space-y-9">
       <section aria-labelledby="provider-heading">
-        <StepHeading id="provider-heading" number="01">Choose a provider</StepHeading>
+        <StepHeading id="provider-heading" number="01">Choose your doctor</StepHeading>
+        <p className="provider-prompt">Who would you like to see? Choose a doctor to explore available visit times.</p>
         {providersLoading ? (
           <div className="grid gap-3 sm:grid-cols-2" aria-label="Loading providers">
             <div className="h-[72px] animate-pulse rounded-xl bg-gray-100" />
@@ -235,28 +236,35 @@ export default function BookingFlow() {
           </div>
         ) : providers.length === 0 ? (
           <p className="rounded-xl border border-dashed border-gray-300 p-5 text-sm text-gray-600">
-            No providers are available right now.
+            No doctors are available right now.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="provider-list grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((provider) => (
               <button
                 type="button"
                 key={provider.id}
                 onClick={() => pickProvider(provider.id)}
                 aria-pressed={providerId === provider.id}
-                className={`flex min-h-[72px] items-center justify-between rounded-xl border p-4 text-left font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+                className={`provider-card flex min-h-[72px] items-center justify-between rounded-xl border p-4 text-left font-semibold transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                   providerId === provider.id
                     ? "border-emerald-800 bg-emerald-800 text-white shadow-sm"
                     : "border-gray-200 bg-white text-gray-900 hover:border-emerald-700 hover:bg-emerald-50/50"
                 }`}
               >
-                <span>{provider.name}</span>
+                <span className="provider-identity"><span className="provider-avatar" aria-hidden="true">{provider.name.split(" ").slice(-2).map((part) => part[0]).join("")}</span><span><span className="provider-name">{provider.name}</span><span className="provider-specialty">30-minute visits</span></span></span>
                 <span className="text-xs font-medium opacity-75">
-                  {providerId === provider.id ? "Selected" : "Select"}
+                  {providerId === provider.id ? "Chosen" : "Choose"}
                 </span>
               </button>
             ))}
+          </div>
+        )}
+        {!providerId && providers.length > 0 && (
+          <div className="provider-next-step mt-6 flex items-center gap-3 rounded-2xl border border-[#e7ebdf] bg-[#f4f6ee] px-4 py-4">
+            <span className="provider-next-icon grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e08b6c] text-white" aria-hidden="true">↗</span>
+            <span className="provider-next-copy min-w-0"><strong className="block text-[11px] text-[#395847]">Up next</strong><small className="mt-1 block text-[10px] text-[#78877e]">Choose a date and time that work for you. No account needed.</small></span>
+            <span className="provider-next-count ml-auto flex items-center gap-2">01 <i /> 02 <i /> 03</span>
           </div>
         )}
       </section>
@@ -271,17 +279,17 @@ export default function BookingFlow() {
             value={date}
             min={todayIST()}
             onChange={(event) => pickDate(event.target.value)}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
+            className="appointment-date rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
           />
           <p className="mt-2 text-sm text-gray-500">
-            Monday to Saturday, 10:00 AM–6:00 PM IST · 30-minute appointments
+            Monday to Saturday, 10:00 AM–6:00 PM IST · 30-minute visits
           </p>
         </section>
       )}
 
       {providerId && (
         <section aria-labelledby="time-heading">
-          <StepHeading id="time-heading" number="03">Select a time</StepHeading>
+          <StepHeading id="time-heading" number="03">Choose a time</StepHeading>
           {slotsLoading ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Loading appointment times">
               {Array.from({ length: 8 }, (_, index) => (
@@ -323,7 +331,7 @@ export default function BookingFlow() {
                       }}
                       aria-pressed={isSelected}
                       title={slot.reason === "BOOKED" ? "Already booked" : slot.reason === "PAST" ? "In the past" : undefined}
-                      className={`min-h-12 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+                      className={`time-choice min-h-12 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                         isSelected
                           ? "border-emerald-800 bg-emerald-800 text-white"
                           : slot.available
@@ -346,14 +354,14 @@ export default function BookingFlow() {
 
       {selected && (
         <section aria-labelledby="details-heading">
-          <StepHeading id="details-heading" number="04">Your details</StepHeading>
+          <StepHeading id="details-heading" number="04">Your contact details</StepHeading>
           <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-950">
             {formatDate(date)} · {formatTime(selected.start)}–{formatTime(selected.end)} IST
           </p>
           <form onSubmit={submit} className="max-w-xl space-y-4">
             <div>
               <label htmlFor="customer-name" className="mb-1.5 block text-sm font-medium text-gray-700">
-                Full name
+                Your name
               </label>
               <input
                 id="customer-name"
@@ -386,7 +394,7 @@ export default function BookingFlow() {
               disabled={submitting}
               className="w-full rounded-xl bg-emerald-800 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
             >
-              {submitting ? "Booking…" : "Confirm appointment"}
+              {submitting ? "Booking…" : "Confirm my visit"}
             </button>
           </form>
         </section>
@@ -396,7 +404,7 @@ export default function BookingFlow() {
       </div>
       </div>
 
-      <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-8">
+      {providerId && <aside className="summary-card rounded-2xl border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-8">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
@@ -404,31 +412,31 @@ export default function BookingFlow() {
             </svg>
           </span>
           <div>
-            <h2 className="font-semibold text-gray-950">Your appointment</h2>
-            <p className="text-xs text-gray-500">Booking summary</p>
+            <h2 className="font-semibold text-gray-950">Your visit</h2>
+            <p className="text-xs text-gray-500">Your selections so far</p>
           </div>
         </div>
 
         <dl className="mt-6 divide-y divide-gray-100 text-sm">
-          <SummaryRow label="Provider" value={providers.find((provider) => provider.id === providerId)?.name ?? "Choose a provider"} active={!providerId} />
+          <SummaryRow label="Doctor" value={providers.find((provider) => provider.id === providerId)?.name ?? "Choose your doctor"} active={!providerId} />
           <SummaryRow label="Date" value={providerId ? formatDate(date) : "Choose a date"} active={Boolean(providerId)} />
           <SummaryRow label="Time" value={selected ? `${formatTime(selected.start)} – ${formatTime(selected.end)} IST` : "Choose a time"} active={Boolean(providerId) && !selected} />
-          <SummaryRow label="Duration" value="30 minutes" />
+          <SummaryRow label="Visit length" value="30 minutes" />
         </dl>
 
         <div className="mt-5 rounded-xl bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-900">How booking works</h3>
+          <h3 className="text-sm font-semibold text-gray-900">A few simple steps</h3>
           <ol className="mt-3 space-y-2.5 text-xs leading-5 text-gray-600">
-            <li className="flex gap-2"><span className="font-bold text-emerald-800">1</span> Pick a provider, date and available time.</li>
-            <li className="flex gap-2"><span className="font-bold text-emerald-800">2</span> Add your name and email to confirm.</li>
-            <li className="flex gap-2"><span className="font-bold text-emerald-800">3</span> Save your booking ID for later.</li>
+            <li className="flex gap-2"><span className="font-bold text-emerald-800">1</span> Choose a doctor, date and time.</li>
+            <li className="flex gap-2"><span className="font-bold text-emerald-800">2</span> Add your contact details.</li>
+            <li className="flex gap-2"><span className="font-bold text-emerald-800">3</span> Keep your visit reference handy.</li>
           </ol>
         </div>
 
         <p className="mt-4 text-xs leading-5 text-gray-500">
           All appointment times are shown in India Standard Time (IST).
         </p>
-      </aside>
+      </aside>}
     </div>
   );
 }
@@ -443,8 +451,8 @@ function StepHeading({
   children: React.ReactNode;
 }) {
   return (
-    <h2 id={id} className="mb-4 flex items-center gap-3 text-lg font-semibold text-gray-950">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+    <h2 id={id} className="step-heading mb-4 flex items-center gap-3 text-lg font-semibold text-gray-950">
+      <span className="step-number flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
         {number}
       </span>
       {children}
