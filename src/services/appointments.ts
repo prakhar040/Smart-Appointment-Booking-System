@@ -3,8 +3,8 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "../lib/db";
 import { AppError } from "../lib/errors";
 import { bookingSchema, isUuid, parseInput } from "../lib/schemas";
-import { generateSlots, validateSlot } from "../lib/slots";
-import { parseDay } from "../lib/slots";
+import { providerNames } from "../lib/config";
+import { generateSlots, parseDay, validateSlot } from "../lib/slots";
 
 export type SlotAvailability = {
   start: string; // ISO UTC
@@ -29,14 +29,19 @@ function normalizeReference(value: string) {
 
 async function requireProvider(providerId: string) {
   const provider = isUuid(providerId)
-    ? await prisma.provider.findUnique({ where: { id: providerId } })
+    ? await prisma.provider.findFirst({
+        where: { id: providerId, name: { in: [...providerNames] } },
+      })
     : null;
   if (!provider) throw new AppError("NOT_FOUND", "Doctor not found", 404);
   return provider;
 }
 
 export function listProviders() {
-  return prisma.provider.findMany({ orderBy: { name: "asc" } });
+  return prisma.provider.findMany({
+    where: { name: { in: [...providerNames] } },
+    orderBy: { name: "asc" },
+  });
 }
 
 export async function getAvailability(providerId: string, date: string, now = new Date()) {
@@ -74,25 +79,9 @@ export async function getAvailability(providerId: string, date: string, now = ne
 
 export async function bookAppointment(
   raw: unknown,
-  patientEmail: string,
-  idempotencyKey: string,
   now = new Date(),
 ) {
-  if (!isUuid(idempotencyKey)) {
-    throw new AppError("VALIDATION_ERROR", "A valid Idempotency-Key header is required", 400);
-  }
-  const accountBoundInput = raw && typeof raw === "object" && !Array.isArray(raw)
-    ? { ...raw, customerEmail: patientEmail }
-    : raw;
-  const parsed = parseInput(bookingSchema, accountBoundInput);
-  const input = { ...parsed, customerEmail: patientEmail };
-
-  const existing = await prisma.appointment.findUnique({
-    where: { idempotencyKey },
-    include: { provider: true },
-  });
-  if (existing) return matchIdempotentBooking(existing, input);
-
+  const input = parseInput(bookingSchema, raw);
   const slot = validateSlot(new Date(input.startTime), now);
   await requireProvider(input.providerId);
 
@@ -103,7 +92,6 @@ export async function bookAppointment(
     try {
       return await prisma.appointment.create({
         data: {
-          idempotencyKey,
           reference,
           providerId: input.providerId,
           customerName: input.customerName,
@@ -115,11 +103,6 @@ export async function bookAppointment(
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-        const replay = await prisma.appointment.findUnique({
-          where: { idempotencyKey },
-          include: { provider: true },
-        });
-        if (replay) return matchIdempotentBooking(replay, input);
         const referenceExists = await prisma.appointment.findUnique({
           where: { reference },
           select: { id: true },
@@ -133,97 +116,33 @@ export async function bookAppointment(
   throw new AppError("INTERNAL_ERROR", "Could not create a visit reference. Please try again.", 503);
 }
 
-function matchIdempotentBooking<T extends {
-  providerId: string;
-  customerName: string;
-  customerEmail: string;
-  startTime: Date;
-}>(appointment: T, input: {
-  providerId: string;
-  customerName: string;
-  customerEmail: string;
-  startTime: string;
-}) {
-  const matches = appointment.providerId === input.providerId
-    && appointment.customerName === input.customerName
-    && appointment.customerEmail === input.customerEmail
-    && appointment.startTime.getTime() === new Date(input.startTime).getTime();
-  if (!matches) {
-    throw new AppError("CONFLICT", "This booking request key was already used for different details.", 409);
-  }
-  return appointment;
-}
-
 function appointmentSelector(idOrReference: string) {
   return isUuid(idOrReference)
     ? { id: idOrReference }
     : { reference: normalizeReference(idOrReference) };
 }
 
-export async function getPatientAppointment(idOrReference: string, email: string) {
-  let appointment = await prisma.appointment.findFirst({
-    where: { ...appointmentSelector(idOrReference), customerEmail: email },
+export async function getAppointment(idOrReference: string) {
+  const appointment = await prisma.appointment.findFirst({
+    where: appointmentSelector(idOrReference),
     include: { provider: true },
   });
   if (!appointment) throw new AppError("NOT_FOUND", "Visit not found", 404);
-  if (appointment.status === "BOOKED" && appointment.endTime.getTime() <= Date.now()) {
-    await prisma.$executeRaw`
-      UPDATE "Appointment"
-      SET "status" = 'COMPLETED'::"AppointmentStatus"
-      WHERE "id" = ${appointment.id}::uuid
-        AND "customerEmail" = ${email}
-        AND "status" = 'BOOKED'
-        AND "endTime" <= CURRENT_TIMESTAMP
-    `;
-    appointment = await prisma.appointment.findFirst({
-      where: { id: appointment.id, customerEmail: email },
-      include: { provider: true },
-    });
-    if (!appointment) throw new AppError("NOT_FOUND", "Visit not found", 404);
-  }
   return appointment;
 }
 
-export async function cancelAppointment(idOrReference: string, email: string) {
-  const appointment = await getPatientAppointment(idOrReference, email);
-
-  if (String(appointment.status) === "COMPLETED") {
-    return {
-      appointment,
-      alreadyCancelled: false,
-      message: "This visit has ended and is marked as completed.",
-    };
-  }
+export async function cancelAppointment(idOrReference: string) {
+  const appointment = await getAppointment(idOrReference);
   if (appointment.status === "CANCELLED") {
     return { appointment, alreadyCancelled: true, message: "This visit was already cancelled." };
   }
-  if (appointment.startTime.getTime() <= Date.now()) {
-    throw new AppError("CONFLICT", "This visit has started and can no longer be cancelled.", 409);
-  }
 
-  // Use the database clock in the conditional write so a concurrent request
-  // cannot cancel after the appointment has started.
-  const count = await prisma.$executeRaw`
-    UPDATE "Appointment"
-    SET "status" = 'CANCELLED'
-    WHERE "id" = ${appointment.id}::uuid
-      AND "customerEmail" = ${email}
-      AND "status" = 'BOOKED'
-      AND "startTime" > CURRENT_TIMESTAMP
-  `;
-
-  const updatedAppointment = await getPatientAppointment(appointment.id, email);
-  if (String(updatedAppointment.status) === "COMPLETED") {
-    return {
-      appointment: updatedAppointment,
-      alreadyCancelled: false,
-      message: "This visit has ended and is marked as completed.",
-    };
-  }
-  if (count === 0 && updatedAppointment.status === "BOOKED") {
-    throw new AppError("CONFLICT", "This visit has started and can no longer be cancelled.", 409);
-  }
-  const alreadyCancelled = updatedAppointment.status === "CANCELLED";
+  const updated = await prisma.appointment.updateMany({
+    where: { id: appointment.id, status: "BOOKED" },
+    data: { status: "CANCELLED" },
+  });
+  const updatedAppointment = await getAppointment(appointment.id);
+  const alreadyCancelled = updated.count === 0;
   return {
     appointment: updatedAppointment,
     alreadyCancelled,
@@ -231,19 +150,8 @@ export async function cancelAppointment(idOrReference: string, email: string) {
   };
 }
 
-export function completeElapsedAppointments() {
-  return prisma.$executeRaw`
-    UPDATE "Appointment"
-    SET "status" = 'COMPLETED'::"AppointmentStatus"
-    WHERE "status" = 'BOOKED'
-      AND "endTime" <= CURRENT_TIMESTAMP
-  `;
-}
-
-export async function listPatientAppointments(email: string) {
-  await completeElapsedAppointments();
+export function listAppointments() {
   return prisma.appointment.findMany({
-    where: { customerEmail: email },
     include: { provider: true },
     orderBy: { startTime: "desc" },
   });

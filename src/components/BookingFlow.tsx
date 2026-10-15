@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { io } from "next/cache";
 import type { AppointmentDto } from "@/lib/dto";
 import { api, ApiClientError, errorMessage, type ProviderDto, type SlotsResponse } from "@/lib/api-client";
@@ -34,20 +33,11 @@ export default function BookingFlow() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [sessionChecked, setSessionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<AppointmentDto | null>(null);
   const [copied, setCopied] = useState(false);
   const inFlight = useRef(false);
-  const idempotency = useRef<{ fingerprint: string; key: string } | null>(null);
-
-  useEffect(() => {
-    api.patientSession()
-      .then(({ email: accountEmail }) => setEmail(accountEmail ?? ""))
-      .catch(() => setEmail(""))
-      .finally(() => setSessionChecked(true));
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -126,38 +116,7 @@ export default function BookingFlow() {
         customerEmail: email,
         startTime: selected.start,
       };
-      const fingerprintBytes = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(body)),
-      );
-      const fingerprint = Array.from(new Uint8Array(fingerprintBytes), (byte) =>
-        byte.toString(16).padStart(2, "0"),
-      ).join("");
-      let stored: { fingerprint: string; key: string } | null = null;
-      try {
-        stored = JSON.parse(sessionStorage.getItem("morrow:pending-booking") ?? "null");
-      } catch {
-        // A fresh key is generated below if session storage is unavailable.
-      }
-      const pending = idempotency.current?.fingerprint === fingerprint
-        ? idempotency.current
-        : stored?.fingerprint === fingerprint
-          ? stored
-          : { fingerprint, key: crypto.randomUUID() };
-      idempotency.current = pending;
-      try {
-        sessionStorage.setItem("morrow:pending-booking", JSON.stringify(pending));
-      } catch {
-        // The in-memory key still protects retries during this page session.
-      }
-
-      const { appointment } = await api.book(body, pending.key);
-      idempotency.current = null;
-      try {
-        sessionStorage.removeItem("morrow:pending-booking");
-      } catch {
-        // The completed booking is already confirmed by the server.
-      }
+      const { appointment } = await api.book(body);
       setConfirmed(appointment);
     } catch (error) {
       setFormError(errorMessage(error));
@@ -186,43 +145,9 @@ export default function BookingFlow() {
     setConfirmed(null);
     setSelected(null);
     setName("");
-    idempotency.current = null;
-    try {
-      sessionStorage.removeItem("morrow:pending-booking");
-    } catch {
-      // Ignore unavailable browser storage.
-    }
     setEmail("");
     setFormError(null);
     refreshSlots();
-  }
-
-  if (!sessionChecked) {
-    return <div className="booking-card h-40 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Checking your account" />;
-  }
-
-  if (!email) {
-    return (
-      <section className="booking-card account-prompt">
-        <div className="account-prompt-copy">
-          <span className="account-prompt-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5 19 6v5.2c0 4.3-2.8 7.4-7 9.3-4.2-1.9-7-5-7-9.3V6l7-2.5Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
-            </svg>
-          </span>
-          <div>
-            <p className="eyebrow eyebrow-dark">PATIENT ACCOUNT</p>
-            <h2>Sign in to book a visit</h2>
-            <p>Your account keeps your appointment details together and private.</p>
-          </div>
-        </div>
-        <div className="account-prompt-actions">
-          <Link href="/booking" className="account-primary-action">Sign in</Link>
-          <Link href="/sign-up" className="account-secondary-action">Create account</Link>
-        </div>
-      </section>
-    );
   }
 
   if (confirmed) {
@@ -460,11 +385,11 @@ export default function BookingFlow() {
                 maxLength={254}
                 autoComplete="email"
                 value={email}
-                readOnly
+                onChange={(event) => setEmail(event.target.value)}
                 aria-describedby="customer-email-note"
                 className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
-              <p id="customer-email-note" className="mt-1.5 text-xs text-gray-500">This is the email on your signed-in account.</p>
+              <p id="customer-email-note" className="mt-1.5 text-xs text-gray-500">We’ll use this email with your visit reference when you manage your booking.</p>
             </div>
             {formError && <Alert>{formError}</Alert>}
             <button

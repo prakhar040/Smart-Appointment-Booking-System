@@ -11,7 +11,6 @@ datasource db {
 enum AppointmentStatus {
   BOOKED
   CANCELLED
-  COMPLETED
 }
 
 model Provider {
@@ -20,17 +19,9 @@ model Provider {
   appointments Appointment[]
 }
 
-model Patient {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique @db.VarChar(254)
-  passwordHash String
-  createdAt    DateTime @default(now()) @db.Timestamptz(6)
-}
-
 model Appointment {
   id            String            @id @default(uuid()) @db.Uuid
   reference     String            @unique @db.VarChar(13)
-  idempotencyKey String           @unique @db.Uuid
   providerId    String            @db.Uuid
   customerName  String
   customerEmail String
@@ -42,5 +33,4 @@ model Appointment {
   provider Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, startTime])
-  @@index([status, endTime])
 }

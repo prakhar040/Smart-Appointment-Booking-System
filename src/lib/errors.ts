@@ -2,9 +2,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
   | "SLOT_TAKEN"
-  | "INTERNAL_ERROR"
-  | "UNAUTHORIZED"
-  | "CONFLICT";
+  | "INTERNAL_ERROR";
 
 export class AppError extends Error {
   constructor(

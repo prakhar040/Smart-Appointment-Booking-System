@@ -9,8 +9,8 @@ let providerB: string;
 beforeAll(async () => {
   const upsert = (name: string) =>
     prisma.provider.upsert({ where: { name }, update: {}, create: { name } });
-  providerA = (await upsert("Test Provider A")).id;
-  providerB = (await upsert("Test Provider B")).id;
+  providerA = (await upsert("Dr. Asha Verma")).id;
+  providerB = (await upsert("Dr. Rohan Mehta")).id;
 });
 
 beforeEach(async () => {

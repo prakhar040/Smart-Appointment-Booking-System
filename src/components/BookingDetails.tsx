@@ -11,51 +11,46 @@ type State =
   | { kind: "loading" }
   | { kind: "notfound" }
   | { kind: "error"; message: string }
-  | { kind: "ready"; id: string; appointment: AppointmentDto };
+  | { kind: "ready"; appointment: AppointmentDto };
 
 export default function BookingDetails({ id }: { id: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
-  const [cancelling, setCancelling] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
-    api
-      .appointment(id)
-      .then((response) => {
-        if (active) setState({ kind: "ready", id, appointment: response.appointment });
+    api.appointment(id)
+      .then(({ appointment }) => {
+        if (active) setState({ kind: "ready", appointment });
       })
-      .catch((error: unknown) => {
+      .catch((reason: unknown) => {
         if (!active) return;
-        if (error instanceof ApiClientError && error.status === 404) {
-          setState({ kind: "notfound" });
-        } else {
-          setState({ kind: "error", message: errorMessage(error) });
-        }
+        if (reason instanceof ApiClientError && reason.status === 404) setState({ kind: "notfound" });
+        else setState({ kind: "error", message: errorMessage(reason) });
       });
     return () => {
       active = false;
     };
   }, [id, reloadKey]);
 
-  async function confirmCancel() {
-    if (inFlight.current || state.kind !== "ready") return;
-
+  async function cancel() {
+    if (state.kind !== "ready" || inFlight.current) return;
     inFlight.current = true;
     setCancelling(true);
-    setActionError(null);
+    setError(null);
     setNotice(null);
     try {
-      const response = await api.cancel(id);
-      setState({ kind: "ready", id, appointment: response.appointment });
-      setNotice(response.message);
+      const result = await api.cancel(state.appointment.reference);
+      setState({ kind: "ready", appointment: result.appointment });
+      setNotice(result.message);
       setConfirmOpen(false);
-    } catch (error) {
-      setActionError(errorMessage(error));
+    } catch (reason) {
+      setError(errorMessage(reason));
       setConfirmOpen(false);
     } finally {
       inFlight.current = false;
@@ -63,86 +58,47 @@ export default function BookingDetails({ id }: { id: string }) {
     }
   }
 
-  if (state.kind === "loading" || (state.kind === "ready" && state.id !== id)) {
-    return <div className="h-56 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Loading booking" />;
+  if (state.kind === "loading") {
+    return <div className="h-56 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Loading appointment" />;
   }
-
   if (state.kind === "notfound") {
-    return (
-      <div className="space-y-4">
-        <Alert>No visit was found with that reference. Check the number and try again.</Alert>
-        <Link href="/booking" className="inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4">
-          Enter another reference
-        </Link>
-      </div>
-    );
+    return <div className="space-y-4"><Alert>No appointment was found with that booking ID.</Alert><Link href="/appointments" className="font-semibold text-emerald-800 underline underline-offset-4">Back to all appointments</Link></div>;
   }
-
   if (state.kind === "error") {
-    return (
-      <div className="space-y-4">
-        <Alert>{state.message}</Alert>
-        {state.message.toLowerCase().includes("sign in") && (
-          <Link href="/booking" className="inline-flex rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Sign in to manage this visit</Link>
-        )}
-        <button
-          type="button"
-          onClick={() => setReloadKey((key) => key + 1)}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
-        >
-          Try again
-        </button>
-      </div>
-    );
+    return <div className="space-y-4"><Alert>{state.message}</Alert><button type="button" onClick={() => { setState({ kind: "loading" }); setReloadKey((key) => key + 1); }} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold">Try again</button></div>;
   }
 
   const appointment = state.appointment;
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+    <section className="subpage-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">YOUR VISIT</p>
-          <h2 className="mt-1 text-xl font-semibold text-gray-950">Visit details</h2>
+          <p className="eyebrow eyebrow-dark">BOOKING ID</p>
+          <h2 className="mt-1 font-mono text-lg font-semibold text-gray-900">{appointment.reference}</h2>
         </div>
-        <StatusBadge status={appointment.status} canCancel={appointment.canCancel} />
+        <StatusBadge status={appointment.status} />
       </div>
-
       <dl className="mt-6 space-y-4 border-y border-gray-100 py-5 text-sm">
         <Row label="Doctor" value={appointment.provider.name} />
+        <Row label="Patient" value={appointment.customerName} />
+        <Row label="Email" value={appointment.customerEmail} />
         <Row label="Date" value={formatDate(appointment.date)} />
         <Row label="Time" value={`${formatTime(appointment.startTime)} – ${formatTime(appointment.endTime)} IST`} />
-        <Row label="Your name" value={appointment.customerName} />
-        <Row label="Contact email" value={appointment.customerEmail} />
       </dl>
-      <p className="mt-4 text-xs text-gray-500">Visit reference: <span className="font-mono font-semibold text-gray-700">{appointment.reference}</span></p>
-
       {notice && <div className="mt-5"><Notice>{notice}</Notice></div>}
-      {actionError && <div className="mt-5"><Alert>{actionError}</Alert></div>}
-
+      {error && <div className="mt-5"><Alert>{error}</Alert></div>}
       <div className="mt-6 flex flex-wrap gap-3">
-        {appointment.canCancel ? (
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            disabled={cancelling}
-            className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-wait disabled:opacity-50"
-          >
-            {cancelling ? "Cancelling…" : "Cancel this visit"}
-          </button>
-        ) : (
-          <Link href="/" className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">
-            Book another visit
-          </Link>
-        )}
+        {appointment.status === "BOOKED" && <button type="button" onClick={() => setConfirmOpen(true)} disabled={cancelling} className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60">Cancel appointment</button>}
+        <Link href="/appointments" className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">All appointments</Link>
       </div>
       <ConfirmDialog
         open={confirmOpen}
-        title="Cancel this visit?"
-        description={`You’re cancelling your visit with ${appointment.provider.name} on ${formatDate(appointment.date)} at ${formatTime(appointment.startTime)} IST. You can book another time whenever you’re ready.`}
-        confirmLabel="Yes, cancel my visit"
+        title="Cancel this appointment?"
+        description={`Cancel your appointment with ${appointment.provider.name} on ${formatDate(appointment.date)} at ${formatTime(appointment.startTime)} IST?`}
+        confirmLabel="Yes, cancel appointment"
         pending={cancelling}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={confirmCancel}
+        onConfirm={cancel}
       />
     </section>
   );

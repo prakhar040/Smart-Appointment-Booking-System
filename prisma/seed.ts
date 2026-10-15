@@ -1,25 +1,20 @@
 import { PrismaClient } from "@prisma/client";
+import { providerNames } from "../src/lib/config";
 
 const prisma = new PrismaClient();
 
-const PROVIDERS = [
-  "Dr. Asha Verma",
-  "Dr. Rohan Mehta",
-  "Dr. Nisha Iyer",
-  "Dr. Kabir Sethi",
-  "Dr. Meera Nair",
-  "Dr. Arjun Rao",
-];
-
 async function main() {
-  for (const name of PROVIDERS) {
+  for (const name of providerNames) {
     await prisma.provider.upsert({
       where: { name },
       update: {},
       create: { name },
     });
   }
-  console.log(`Seeded ${PROVIDERS.length} providers:`, PROVIDERS.join(", "));
+  await prisma.provider.deleteMany({
+    where: { name: { notIn: [...providerNames] }, appointments: { none: {} } },
+  });
+  console.log(`Seeded ${providerNames.length} providers:`, providerNames.join(", "));
 }
 
 main()

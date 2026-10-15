@@ -1,5 +1,5 @@
-import { Suspense } from "react";
 import BookingDetails from "@/components/BookingDetails";
+import { Suspense } from "react";
 
 export default function BookingDetailsPage({
   params,
@@ -9,11 +9,21 @@ export default function BookingDetailsPage({
   return (
     <main className="subpage-shell">
       <header className="subpage-hero">
-        <p className="eyebrow eyebrow-dark">YOUR VISIT, AT YOUR FINGERTIPS</p>
-        <h1>Your visit.</h1>
-        <p>Review your visit details or cancel if your plans change.</p>
+        <p className="eyebrow eyebrow-dark">VISIT MANAGEMENT</p>
+        <h1>Manage your visit.</h1>
+        <p>Review your booking details or cancel the appointment.</p>
       </header>
-      <Suspense fallback={<div className="h-56 animate-pulse rounded-2xl border border-gray-200 bg-white" aria-label="Loading booking" />}>
+      <Suspense
+        fallback={
+          <section
+            aria-label="Loading visit details"
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+          >
+            <div className="h-5 w-40 animate-pulse rounded bg-gray-100" />
+            <div className="mt-4 h-4 w-64 max-w-full animate-pulse rounded bg-gray-100" />
+          </section>
+        }
+      >
         <BookingDetailsContent params={params} />
       </Suspense>
     </main>

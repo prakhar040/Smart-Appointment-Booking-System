@@ -1,82 +1,66 @@
 # Smart Appointment Booking System
 
-A small appointment scheduling app for a provider directory, live slot availability, booking, lookup, and cancellation. The app uses IST by default and stores appointment instants in PostgreSQL.
+A full-stack appointment booking app with two seeded providers, dynamic availability, booking, cancellation, and an appointment management view. Appointment times are stored in PostgreSQL and scheduled in India Standard Time (Asia/Kolkata).
 
 ## Requirements
 
-- Node.js 20.9 or newer (required by the installed Next.js version)
+- Node.js 20.9 or newer
 - npm
-- PostgreSQL, or a Neon PostgreSQL database
-
-Docker is not part of this project. Neon is the documented hosted database option.
+- PostgreSQL or Neon PostgreSQL
 
 ## Set up locally
 
-1. Install dependencies with `npm install`. The postinstall hook generates the Prisma client. It supplies local placeholder URLs only for generation when database variables are absent; it does not connect to a database.
-2. Copy `.env.example` to `.env` and set `DATABASE_URL` to the pooled connection string and `DIRECT_URL` to the direct connection string from your PostgreSQL provider. Set both to a local database URL when using local PostgreSQL.
-3. Review the scheduling settings in `.env`. Defaults are `Asia/Kolkata`, 10:00–18:00, 30-minute slots, Monday through Saturday.
-4. Set `PATIENT_AUTH_SECRET` and `APPOINTMENT_CRON_SECRET` to separate random secrets of at least 32 characters.
-5. Apply schema migrations with `npm run db:deploy`.
-6. Seed the sample providers with `npm run db:seed`.
-7. Start the development server with `npm run dev`, then open <http://localhost:3000>.
+1. Install dependencies with `npm install`. The postinstall hook generates the Prisma client and does not connect to the database.
+2. Copy `.env.example` to `.env` and set `DATABASE_URL` to the runtime connection string and `DIRECT_URL` to the direct connection string. For local PostgreSQL, set both to your local database URL.
+3. Apply the checked-in migrations with `npm run db:deploy`.
+4. Seed the two service providers with `npm run db:seed`.
+5. Start the development server with `npm run dev`, then open <http://localhost:3000>.
 
-For a new local schema during development, `npm run db:migrate` creates and applies a migration. Use `npm run db:deploy` for a clean deployment from checked-in migrations.
+`npm run db:migrate` creates a migration during local schema development. Use `npm run db:deploy` to deploy checked-in migrations.
 
 ## Environment variables
 
 | Name | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Runtime/pooled PostgreSQL connection used by Prisma |
-| `DIRECT_URL` | Direct database connection for Prisma migrations |
-| `TIMEZONE` | Scheduling calendar zone; defaults to `Asia/Kolkata` |
-| `WORK_START_HOUR` | Opening hour, defaults to `10` |
-| `WORK_END_HOUR` | Closing hour, defaults to `18` |
-| `SLOT_MINUTES` | Appointment length, defaults to `30` |
-| `WORKING_DAYS` | Luxon weekday numbers, Monday `1` through Sunday `7`; defaults to `1,2,3,4,5,6` |
-| `PATIENT_AUTH_SECRET` | Random secret used to sign patient session cookies; use at least 32 characters |
+| `DATABASE_URL` | Runtime PostgreSQL connection, usually pooled |
+| `DIRECT_URL` | Direct PostgreSQL connection for migrations |
 
-Keep `.env` and `.env.test` private. `.env.example` and `.env.test.example` contain placeholders only.
+Keep `.env` and `.env.test` private. The example files contain placeholders only.
 
-## Application and API
+## Architecture and API
 
-The active Next.js App Router is the root `app/` directory. Reusable booking logic and UI live under `src/`; Prisma schema, seed, and migrations live under `prisma/`.
+The Next.js App Router in `app/` provides pages and API routes. Reusable UI, validation, scheduling, and appointment business logic live under `src/`. PostgreSQL access, schema, seed data, and migrations use Prisma under `prisma/`.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/providers` | List providers |
-| `GET` | `/api/providers/:id/slots?date=YYYY-MM-DD` | List provider availability for a date |
-| `POST` | `/api/appointments` | Create a booking |
-| `POST` | `/api/patient-auth/signup` | Create a patient account and sign in |
-| `POST` | `/api/patient-auth/login` | Sign in to a patient account |
-| `GET` / `DELETE` | `/api/patient-auth/session` | Read session / sign out |
-| `POST` | `/api/cron/appointments` | Mark elapsed bookings completed (requires `Authorization: Bearer <APPOINTMENT_CRON_SECRET>`) |
-| `GET` | `/api/appointments/:id` | Look up an appointment |
-| `POST` | `/api/appointments/:id/cancel` | Cancel an appointment |
+| `GET` | `/api/providers` | List the two configured providers |
+| `GET` | `/api/providers/:id/slots?date=YYYY-MM-DD` | Calculate availability from working hours and existing bookings |
+| `POST` | `/api/appointments` | Validate and create a booking |
+| `GET` | `/api/appointments` | List all bookings for the management view |
+| `GET` | `/api/appointments/:id` | Look up details by UUID or human-friendly visit reference |
+| `POST` | `/api/appointments/:id/cancel` | Cancel a booked appointment without deleting its record |
 
-Patient accounts use email and password; passwords are stored as scrypt hashes. Session cookies are HTTP-only, SameSite=Lax, and signed with `PATIENT_AUTH_SECRET`. There is no email verification or password reset flow. Booking, listing, details, and cancellation require sign-in. New bookings use the email on the signed-in account, and existing appointment access is scoped by that email. Visits become `COMPLETED` once their end time passes; patient visit reads also reconcile any elapsed visits. Configure a scheduler to send an authenticated `POST /api/cron/appointments` request on a regular cadence, using `APPOINTMENT_CRON_SECRET`, to update statuses even when nobody is using the site. Cancellation is blocked once the visit start time arrives. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`); the UUID `id` remains internal. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
+The schedule is fixed: Monday through Saturday, 10:00 AM to 6:00 PM, with 30-minute slots in Asia/Kolkata. Appointment status is `BOOKED` or `CANCELLED`. A partial unique database index prevents two active bookings for the same provider and start time while allowing cancelled slots to be rebooked. The visit reference (for example, `VIS-7K2M-4Q9R`) is the human-friendly booking ID; the UUID remains the internal database ID. The management page displays all appointments, as required by the assessment. API errors use `{ "error": { "code": "...", "message": "..." } }`.
 
 ## Tests and checks
 
-`npm run lint` runs ESLint. `npm run build` creates the production build. `npm test` runs Vitest, including database-backed API integration tests. Those integration tests delete appointment rows and create fixture providers, so they must use a separate disposable test database.
+`npm run lint` runs ESLint. `npm run build` creates the production build. `npm test` runs Vitest, including database-backed API integration tests. Those integration tests delete appointment rows and create fixture data, so they must use a separate disposable test database.
 
-To configure that database, copy `.env.test.example` to `.env.test`, use credentials for a separate test database, then run:
+For the test database, copy `.env.test.example` to `.env.test`, set it to a separate database, then run:
 
 ```sh
 npm run db:migrate:test
 npm test
 ```
 
-Do not point `.env.test` at a production or shared development database. `src/lib/slots.test.ts` also covers the IST midnight boundary: 00:00 IST belongs to the new calendar date, even though it is still the prior UTC date.
+Never point `.env.test` at a production or shared development database. Slot tests also cover the IST midnight boundary.
 
 ## Known limitations
 
-- Patient accounts do not verify email ownership and do not yet provide password reset, login rate limiting, or multi-factor authentication. A person who registers an email matching a pre-existing booking can access visits associated with that address; review existing bookings before production use.
-- There is no email/SMS confirmation, rate limiting, provider administration, pagination, or configurable booking horizon.
-- Availability and booking depend on a reachable PostgreSQL database. A sleeping or unavailable hosted database can make requests slow or return a server error until the database wakes or connectivity is restored.
-- Production concurrency, cold-start, reload, and manual abuse checks require a configured reachable database and deployment environment; they are not implied by the automated unit tests.
+- There is no authentication, email/SMS confirmation, rate limiting, provider administration, pagination, or configurable booking horizon.
+- The management view is intentionally public and lists all appointments to match the assessment requirements.
+- Availability and booking depend on a reachable PostgreSQL database. A sleeping or unavailable hosted database can make requests slow or return a server error.
 
-## AI usage and verification notes
+## AI usage summary
 
-OpenAI Codex was used to help plan and implement the application, review code, troubleshoot Next.js and database errors, and improve the booking UI. The developer also tested API requests in Postman and supplied the observed responses and logs. Codex helped add the API and slot test cases and performed local static/build checks when available.
-
-The supplied Postman logs showed the API route returning errors when the configured Neon host could not be reached. Database-backed integration tests and production concurrency/cold-start checks must be run against a reachable, isolated database and deployment before claiming those behaviors are verified. No external production database or deployment was modified as part of this implementation.
+OpenAI Codex was used to help translate the assessment into implementation tasks, update the booking flow and APIs, troubleshoot framework and database errors, and review the code. The developer supplied project context and reviewed the resulting changes. API behavior was previously exercised through Postman; database-backed integration tests should be run against an isolated test database before submission.
