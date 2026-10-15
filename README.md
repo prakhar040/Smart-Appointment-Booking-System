@@ -16,6 +16,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## API integration tests
+
+The integration tests call the booking and cancellation route handlers and write to a dedicated Neon test branch. Create `.env.test` in the project root with that branch's pooled `DATABASE_URL` and direct `DIRECT_URL`. Do not point it at the development or production database; the test suite deletes appointment rows between cases. `.env.test` is ignored by Git.
+
+Apply the migrations to the test branch, then run the tests and checks:
+
+```bash
+npm run db:migrate:test
+npm test
+npx tsc --noEmit
+npm run lint
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
