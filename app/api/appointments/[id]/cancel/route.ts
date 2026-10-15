@@ -10,13 +10,11 @@ export function POST(
   return handle(async () => {
     const email = requirePatient(request);
     const { id } = await params;
-    const { appointment, alreadyCancelled } = await cancelAppointment(id, email);
+    const { appointment, alreadyCancelled, message } = await cancelAppointment(id, email);
     return json({
       appointment: toAppointmentDto(appointment),
       alreadyCancelled,
-      message: alreadyCancelled
-        ? "This visit was already cancelled."
-        : "Your visit has been cancelled.",
+      message,
     });
   });
 }

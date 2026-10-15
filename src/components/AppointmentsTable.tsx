@@ -14,7 +14,7 @@ export default function AppointmentsTable() {
   const [reloadKey, setReloadKey] = useState(0);
   const [referenceQuery, setReferenceQuery] = useState("");
   const [dateQuery, setDateQuery] = useState("");
-  const [statusQuery, setStatusQuery] = useState<"ALL" | "BOOKED" | "CANCELLED">("ALL");
+  const [statusQuery, setStatusQuery] = useState<"ALL" | "BOOKED" | "CANCELLED" | "COMPLETED">("ALL");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [pendingCancel, setPendingCancel] = useState<AppointmentDto | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -120,6 +120,7 @@ export default function AppointmentsTable() {
             <option value="ALL">All visits</option>
             <option value="BOOKED">Confirmed</option>
             <option value="CANCELLED">Cancelled</option>
+            <option value="COMPLETED">Completed</option>
           </select>
         </div>
         <p className="text-xs text-gray-500 sm:col-span-3" aria-live="polite">Showing {filteredItems.length} of {items.length} {items.length === 1 ? "visit" : "visits"}</p>
@@ -166,8 +167,8 @@ export default function AppointmentsTable() {
                     <td className="whitespace-nowrap px-4 py-4">{formatTime(appointment.startTime)} – {formatTime(appointment.endTime)}</td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap items-center gap-4">
-                        <StatusBadge status={appointment.status} />
-                        {!cancelled && (
+                        <StatusBadge status={appointment.status} canCancel={appointment.canCancel} />
+                        {appointment.canCancel && (
                           <button
                             type="button"
                             onClick={() => setPendingCancel(appointment)}

@@ -119,28 +119,87 @@ function appointmentSelector(idOrReference: string) {
 }
 
 export async function getPatientAppointment(idOrReference: string, email: string) {
-  const appointment = await prisma.appointment.findFirst({
+  let appointment = await prisma.appointment.findFirst({
     where: { ...appointmentSelector(idOrReference), customerEmail: email },
     include: { provider: true },
   });
   if (!appointment) throw new AppError("NOT_FOUND", "Visit not found", 404);
+  if (appointment.status === "BOOKED" && appointment.endTime.getTime() <= Date.now()) {
+    await prisma.$executeRaw`
+      UPDATE "Appointment"
+      SET "status" = 'COMPLETED'::"AppointmentStatus"
+      WHERE "id" = ${appointment.id}::uuid
+        AND "customerEmail" = ${email}
+        AND "status" = 'BOOKED'
+        AND "endTime" <= CURRENT_TIMESTAMP
+    `;
+    appointment = await prisma.appointment.findFirst({
+      where: { id: appointment.id, customerEmail: email },
+      include: { provider: true },
+    });
+    if (!appointment) throw new AppError("NOT_FOUND", "Visit not found", 404);
+  }
   return appointment;
 }
 
 export async function cancelAppointment(idOrReference: string, email: string) {
   const appointment = await getPatientAppointment(idOrReference, email);
 
-  // Atomic, conditional update. Only a BOOKED row can transition.
-  const { count } = await prisma.appointment.updateMany({
-    where: { id: appointment.id, customerEmail: email, status: "BOOKED" },
-    data: { status: "CANCELLED" },
-  });
+  if (String(appointment.status) === "COMPLETED") {
+    return {
+      appointment,
+      alreadyCancelled: false,
+      message: "This visit has ended and is marked as completed.",
+    };
+  }
+  if (appointment.status === "CANCELLED") {
+    return { appointment, alreadyCancelled: true, message: "This visit was already cancelled." };
+  }
+  if (appointment.startTime.getTime() <= Date.now()) {
+    throw new AppError("CONFLICT", "This visit has started and can no longer be cancelled.", 409);
+  }
+
+  // Use the database clock in the conditional write so a concurrent request
+  // cannot cancel after the appointment has started.
+  const count = await prisma.$executeRaw`
+    UPDATE "Appointment"
+    SET "status" = 'CANCELLED'
+    WHERE "id" = ${appointment.id}::uuid
+      AND "customerEmail" = ${email}
+      AND "status" = 'BOOKED'
+      AND "startTime" > CURRENT_TIMESTAMP
+  `;
 
   const updatedAppointment = await getPatientAppointment(appointment.id, email);
-  return { appointment: updatedAppointment, alreadyCancelled: count === 0 };
+  if (String(updatedAppointment.status) === "COMPLETED") {
+    return {
+      appointment: updatedAppointment,
+      alreadyCancelled: false,
+      message: "This visit has ended and is marked as completed.",
+    };
+  }
+  if (count === 0 && updatedAppointment.status === "BOOKED") {
+    throw new AppError("CONFLICT", "This visit has started and can no longer be cancelled.", 409);
+  }
+  const alreadyCancelled = updatedAppointment.status === "CANCELLED";
+  return {
+    appointment: updatedAppointment,
+    alreadyCancelled,
+    message: alreadyCancelled ? "This visit was already cancelled." : "Your visit has been cancelled.",
+  };
 }
 
-export function listPatientAppointments(email: string) {
+export function completeElapsedAppointments() {
+  return prisma.$executeRaw`
+    UPDATE "Appointment"
+    SET "status" = 'COMPLETED'::"AppointmentStatus"
+    WHERE "status" = 'BOOKED'
+      AND "endTime" <= CURRENT_TIMESTAMP
+  `;
+}
+
+export async function listPatientAppointments(email: string) {
+  await completeElapsedAppointments();
   return prisma.appointment.findMany({
     where: { customerEmail: email },
     include: { provider: true },

@@ -11,6 +11,7 @@ datasource db {
 enum AppointmentStatus {
   BOOKED
   CANCELLED
+  COMPLETED
 }
 
 model Provider {
@@ -40,4 +41,5 @@ model Appointment {
   provider Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, startTime])
+  @@index([status, endTime])
 }

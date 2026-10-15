@@ -25,14 +25,14 @@ export function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function StatusBadge({ status }: { status: "BOOKED" | "CANCELLED" }) {
-  const style =
-    status === "BOOKED"
-      ? "bg-emerald-100 text-emerald-800"
-      : "bg-gray-100 text-gray-600";
+export function StatusBadge({ status, canCancel = false }: { status: "BOOKED" | "CANCELLED" | "COMPLETED"; canCancel?: boolean }) {
+  const label = status === "BOOKED" ? (canCancel ? "Confirmed" : "In progress") : status === "COMPLETED" ? "Completed" : "Cancelled";
+  const style = status === "BOOKED"
+    ? canCancel ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+    : status === "COMPLETED" ? "bg-sky-100 text-sky-800" : "bg-gray-100 text-gray-600";
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${style}`}>
-      {status === "BOOKED" ? "Confirmed" : "Cancelled"}
+      {label}
     </span>
   );
 }

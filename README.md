@@ -15,7 +15,7 @@ Docker is not part of this project. Neon is the documented hosted database optio
 1. Install dependencies with `npm install`. The postinstall hook generates the Prisma client. It supplies local placeholder URLs only for generation when database variables are absent; it does not connect to a database.
 2. Copy `.env.example` to `.env` and set `DATABASE_URL` to the pooled connection string and `DIRECT_URL` to the direct connection string from your PostgreSQL provider. Set both to a local database URL when using local PostgreSQL.
 3. Review the scheduling settings in `.env`. Defaults are `Asia/Kolkata`, 10:00–18:00, 30-minute slots, Monday through Saturday.
-4. Set `PATIENT_AUTH_SECRET` to a random secret of at least 32 characters.
+4. Set `PATIENT_AUTH_SECRET` and `APPOINTMENT_CRON_SECRET` to separate random secrets of at least 32 characters.
 5. Apply schema migrations with `npm run db:deploy`.
 6. Seed the sample providers with `npm run db:seed`.
 7. Start the development server with `npm run dev`, then open <http://localhost:3000>.
@@ -49,10 +49,11 @@ The active Next.js App Router is the root `app/` directory. Reusable booking log
 | `POST` | `/api/patient-auth/signup` | Create a patient account and sign in |
 | `POST` | `/api/patient-auth/login` | Sign in to a patient account |
 | `GET` / `DELETE` | `/api/patient-auth/session` | Read session / sign out |
+| `POST` | `/api/cron/appointments` | Mark elapsed bookings completed (requires `Authorization: Bearer <APPOINTMENT_CRON_SECRET>`) |
 | `GET` | `/api/appointments/:id` | Look up an appointment |
 | `POST` | `/api/appointments/:id/cancel` | Cancel an appointment |
 
-Patient accounts use email and password; passwords are stored as scrypt hashes. Session cookies are HTTP-only, SameSite=Lax, and signed with `PATIENT_AUTH_SECRET`. There is no email verification or password reset flow. Booking, listing, details, and cancellation require sign-in. New bookings use the email on the signed-in account, and existing appointment access is scoped by that email. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`); the UUID `id` remains internal. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
+Patient accounts use email and password; passwords are stored as scrypt hashes. Session cookies are HTTP-only, SameSite=Lax, and signed with `PATIENT_AUTH_SECRET`. There is no email verification or password reset flow. Booking, listing, details, and cancellation require sign-in. New bookings use the email on the signed-in account, and existing appointment access is scoped by that email. Visits become `COMPLETED` once their end time passes; patient visit reads also reconcile any elapsed visits. Configure a scheduler to send an authenticated `POST /api/cron/appointments` request on a regular cadence, using `APPOINTMENT_CRON_SECRET`, to update statuses even when nobody is using the site. Cancellation is blocked once the visit start time arrives. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`); the UUID `id` remains internal. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
 
 ## Tests and checks
 

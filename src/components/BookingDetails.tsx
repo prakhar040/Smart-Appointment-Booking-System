@@ -104,7 +104,7 @@ export default function BookingDetails({ id }: { id: string }) {
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">YOUR VISIT</p>
           <h2 className="mt-1 text-xl font-semibold text-gray-950">Visit details</h2>
         </div>
-        <StatusBadge status={appointment.status} />
+        <StatusBadge status={appointment.status} canCancel={appointment.canCancel} />
       </div>
 
       <dl className="mt-6 space-y-4 border-y border-gray-100 py-5 text-sm">
@@ -120,7 +120,7 @@ export default function BookingDetails({ id }: { id: string }) {
       {actionError && <div className="mt-5"><Alert>{actionError}</Alert></div>}
 
       <div className="mt-6 flex flex-wrap gap-3">
-        {appointment.status === "BOOKED" ? (
+        {appointment.canCancel ? (
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}

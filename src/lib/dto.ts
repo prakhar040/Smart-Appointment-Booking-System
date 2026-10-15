@@ -10,7 +10,8 @@ export type AppointmentDto = {
   date: string; // YYYY-MM-DD in the configured timezone
   startTime: string; // ISO instant (UTC)
   endTime: string;
-  status: "BOOKED" | "CANCELLED";
+  status: "BOOKED" | "CANCELLED" | "COMPLETED";
+  canCancel: boolean;
   createdAt: string;
 };
 
@@ -26,7 +27,8 @@ export function toAppointmentDto(a: Appointment & { provider: Provider }): Appoi
     date: toDateString(a.startTime),
     startTime: a.startTime.toISOString(),
     endTime: a.endTime.toISOString(),
-    status: a.status,
+    status: String(a.status) as AppointmentDto["status"],
+    canCancel: a.status === "BOOKED" && a.startTime.getTime() > Date.now(),
     createdAt: a.createdAt.toISOString(),
   };
 }
