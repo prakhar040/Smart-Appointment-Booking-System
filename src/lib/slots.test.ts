@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { AppError } from "./errors";
-import { generateSlots, validateSlot } from "./slots";
+import { generateSlots, toDateString, validateSlot } from "./slots";
 
 const NOW = new Date("2030-01-01T00:00:00Z");
+
+describe("toDateString", () => {
+  it("assigns instants to the IST calendar day, not the UTC day", () => {
+    expect(toDateString(new Date("2030-01-06T18:29:59Z"))).toBe("2030-01-06");
+    expect(toDateString(new Date("2030-01-06T18:30:00Z"))).toBe("2030-01-07");
+  });
+});
 
 describe("generateSlots", () => {
   it("returns 16 slots from 10:00 to 18:00 IST on a working day", () => {

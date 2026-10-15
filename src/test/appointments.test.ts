@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "../lib/db";
 import { getAvailability } from "../services/appointments";
-import { at, book, cancel, MONDAY, payload, SUNDAY } from "./helpers";
+import { at, book, cancel, MONDAY, payload, slots, SUNDAY } from "./helpers";
 
 let providerA: string;
 let providerB: string;
@@ -46,6 +46,13 @@ describe("successful booking", () => {
     );
     expect(res.status).toBe(201);
     expect(res.body.appointment.endTime).toBe("2030-01-07T05:00:00.000Z");
+  });
+
+  it("ignores client-supplied id and status", async () => {
+    const res = await book(payload(providerA, at("10:00"), { id: "client-id", status: "CANCELLED" }));
+    expect(res.status).toBe(201);
+    expect(res.body.appointment.id).not.toBe("client-id");
+    expect(res.body.appointment.status).toBe("BOOKED");
   });
 
   it("allows back-to-back appointments (BR-05)", async () => {
@@ -108,6 +115,10 @@ describe("request validation", () => {
     ["blank name", payload("x", at("10:00"), { customerName: "   " })],
     ["invalid email", payload("x", at("10:00"), { customerEmail: "nope" })],
     ["non-ISO startTime", payload("x", "tomorrow at 10")],
+    ["missing timezone offset", payload("x", "2030-01-07T10:00:00")],
+    ["fractional slot seconds", payload("x", "2030-01-07T10:00:00.500+05:30")],
+    ["overlong name", payload("x", at("10:00"), { customerName: "A".repeat(101) })],
+    ["wrong field types", { providerId: 12, customerName: false, customerEmail: [], startTime: null }],
   ])("returns 400 for %s", async (_label, body) => {
     expect((await book(body)).status).toBe(400);
   });
@@ -116,12 +127,29 @@ describe("request validation", () => {
     expect((await book("{bad")).status).toBe(400);
   });
 
+  it.each([["array", "[]"], ["string", '"hello"']])("returns 400 for a JSON %s body", async (_label, body) => {
+    const res = await book(body);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
   it("returns 404 for an unknown provider", async () => {
     const res = await book(
       payload("00000000-0000-4000-8000-000000000000", at("10:00")),
     );
     expect(res.status).toBe(404);
   });
+});
+
+describe("availability query validation", () => {
+  it.each([undefined, "2030-02-31", "2030-1-7"]) (
+    "returns a structured 400 for invalid date %s",
+    async (date) => {
+      const res = await slots(providerA, date);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatchObject({ code: "VALIDATION_ERROR" });
+    },
+  );
 });
 
 describe("cancellation", () => {
