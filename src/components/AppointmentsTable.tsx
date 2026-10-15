@@ -143,7 +143,7 @@ export default function AppointmentsTable() {
                     <td className="whitespace-nowrap px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <Link
-                          href={`/booking/${appointment.id}`}
+                          href={`/booking/${appointment.reference}`}
                           className="text-xs font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
                         >
                           Details

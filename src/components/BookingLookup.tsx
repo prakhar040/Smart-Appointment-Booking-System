@@ -23,7 +23,7 @@ export default function BookingLookup() {
           id="booking-id"
           required
           autoComplete="off"
-          placeholder="Enter the reference from your confirmation"
+          placeholder="e.g. VIS-7K2M-4Q9R"
           value={id}
           onChange={(event) => setId(event.target.value)}
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"

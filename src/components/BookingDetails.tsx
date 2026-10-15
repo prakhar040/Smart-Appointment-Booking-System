@@ -111,7 +111,7 @@ export default function BookingDetails({ id }: { id: string }) {
         <Row label="Your name" value={appointment.customerName} />
         <Row label="Contact email" value={appointment.customerEmail} />
       </dl>
-      <p className="mt-4 break-all text-xs text-gray-400">Visit reference: {appointment.id}</p>
+      <p className="mt-4 text-xs text-gray-500">Visit reference: <span className="font-mono font-semibold text-gray-700">{appointment.reference}</span></p>
 
       {notice && <div className="mt-5"><Notice>{notice}</Notice></div>}
       {actionError && <div className="mt-5"><Alert>{actionError}</Alert></div>}

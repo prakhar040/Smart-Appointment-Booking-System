@@ -132,7 +132,7 @@ export default function BookingFlow() {
   async function copyId() {
     if (!confirmed) return;
     try {
-      await navigator.clipboard.writeText(confirmed.id);
+      await navigator.clipboard.writeText(confirmed.reference);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -174,7 +174,7 @@ export default function BookingFlow() {
             Visit reference · save this to manage your visit
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <code className="break-all text-sm font-semibold text-gray-900">{confirmed.id}</code>
+            <code className="break-all text-sm font-semibold text-gray-900">{confirmed.reference}</code>
             <button
               type="button"
               onClick={copyId}
@@ -187,7 +187,7 @@ export default function BookingFlow() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <a
-            href={`/booking/${confirmed.id}`}
+            href={`/booking/${confirmed.reference}`}
             className="rounded-lg bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
           >
             View visit details

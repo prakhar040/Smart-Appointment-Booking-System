@@ -47,7 +47,7 @@ The active Next.js App Router is the root `app/` directory. Reusable booking log
 | `GET` | `/api/appointments/:id` | Look up an appointment |
 | `POST` | `/api/appointments/:id/cancel` | Cancel an appointment |
 
-Booking requests require `providerId`, `customerName`, `customerEmail`, and an ISO 8601 `startTime` with a timezone offset. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
+Booking requests require `providerId`, `customerName`, `customerEmail`, and an ISO 8601 `startTime` with a timezone offset. API responses include a short `reference` (for example, `VIS-7K2M-4Q9R`) for customer lookup; the UUID `id` remains the internal identifier. The lookup and cancellation endpoints accept either value. API errors use `{ "error": { "code": "...", "message": "..." } }`. The database's partial unique index prevents two active bookings for the same provider and start time, including concurrent requests.
 
 ## Tests and checks
 

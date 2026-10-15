@@ -3,6 +3,7 @@ import { toDateString } from "./slots";
 
 export type AppointmentDto = {
   id: string;
+  reference: string;
   provider: { id: string; name: string };
   customerName: string;
   customerEmail: string;
@@ -18,6 +19,7 @@ export type ApiErrorBody = { error: { code: string; message: string } };
 export function toAppointmentDto(a: Appointment & { provider: Provider }): AppointmentDto {
   return {
     id: a.id,
+    reference: a.reference,
     provider: { id: a.provider.id, name: a.provider.name },
     customerName: a.customerName,
     customerEmail: a.customerEmail,
